@@ -1,0 +1,333 @@
+---
+title: "EA Integrated Financial Dataset (No Quarters)"
+author: "EA Team"
+date: "October 16, 2020"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+```
+Below is a guide for working with the EA branches FSD_Clean and MSD_Clean functions. You can use these functions to importat, clean, and append the Financial Structured Dataset and MER Structured Dataset to create an integrated financial and programmatic dataset. 
+
+##Step 1: Installing Packages
+R packages are a collection of R functions, complied code and sample data. They are stored under a directory called "library" in the R environment. By default, R installs a set of packages during installation. https://www.tutorialspoint.com/r/r_packages.htm
+
+```{r}
+install.packages("tidyverse")
+install.packages("dplyr")
+Install.packages("stringr")
+install.packages("readxl")
+install.packages("here")
+install.packages("glamr")
+install.packages("purr")
+install.packages("devtools")
+install.packages("googlesheets4")
+install.packages("remote")
+remotes::install_github("ICPI/ICPIutilities")
+```
+
+
+##Step 2: Running Libraries
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(dplyr)
+library(tidyverse)
+library(readxl)
+library(ICPIutilities)
+library(glamr)
+library(purrr)
+library(here)
+library(googlesheets4)
+```
+
+##Step 3: Locating the dataset files
+The "here()" funcitons constructs paths to your project's files, it will locate the files relative to your project root.
+```{r}
+here("Datasets")
+```
+
+##Step 4: Creating MSD & FSD functions
+By first creating the functions, it will allow us to, later on, clean up/transform the datasets according to variables that are needed to bind the data. 
+
+1. Clean the MSD
+```{r} 
+
+MSD_Clean<-function(df){
+#Can run these separately if need be. read_MSD is nested here
+  df<-read_msd(df)
+
+#Use this to filter out the disaggs and drop uneeded columns
+  df<-df%>%dplyr::filter(standardizeddisaggregate == "Total Numerator") %>%
+    dplyr::select( - c('operatingunituid', 'pre_rgnlztn_hq_mech_code', 'primepartner_duns',	'award_number',	
+'categoryoptioncomboname', 'ageasentered', 'trendsfine', 'trendssemifine',	
+'statushiv',	'statustb', 'statuscx', 'hiv_treatment_status', 'otherdisaggregate', 'otherdisaggregate_sub', 'source_name','numeratordenom','disaggregate','standardizeddisaggregate','trendscoarse','sex','modality','qtr1':'qtr4'))%>%
+    dplyr::rename("Operating Unit"= "operatingunit",
+                  "Country"= "countryname",
+                  "Funding Agency"= "fundingagency",
+                  "Prime Partner Name"= "primepartner",
+                  "Mechanism ID"="mech_code",
+                  "Mechanism Name" = "mech_name",
+                  "Indicator Type"="indicatortype",
+                  "Indicator"="indicator",
+                  "Targets"="targets",
+                 # "Quarter 1"="qtr1",
+                  #"Quarter 2"="qtr2",
+                  #"Quarter 3"="qtr3",
+                  #"Quarter 4"="qtr4",
+                  "Results"="cumulative",
+                  "Fiscal Year"="fiscal_year")%>%
+    dplyr::mutate(`Data Stream`="MER")%>%
+      dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`)) 
+
+#Turn NAs into 0s to make it easier to read
+  df<-df%>%
+    #mutate_at(vars(`Quarter 1`:`Quarter 4`),~replace_na(.,0))%>% 
+    mutate_at(vars(`Targets`),~replace_na(.,0))%>%
+    mutate_at(vars(`Results`),~replace_na(.,0))
+    
+    
+#using pivot_long to turn results into quarters
+#df<-df%>%
+  #  pivot_longer(
+   #   cols = `Quarter 1`: `Quarter 4`,
+    #  names_to="Quarter",
+     # values_to="Results"
+  #  )
+
+  return(df)
+}
+```
+
+2. Clean the FSD function
+```{r} 
+FSD_Clean<-function(df){
+
+#nested read_msd. Can be removed and run separately
+  df<-read_msd(df)
+
+# Drop columns you don't need and rename
+  df<-df %>%dplyr::select( - c('primepartner_duns',	'award_number',	
+                                       'subrecipient_duns')) %>% 
+    dplyr::rename("Operating Unit"= operatingunit,
+                  "Country"= country,
+                  "Funding Agency"= fundingagency,
+                  "Prime Partner Name"= primepartner_name,
+                  "Subrecipient Name"= subrecipient_name,
+                  "Mechanism ID"=mech_code,
+                  "Mechanism Name" = mech_name,
+                  "Program Area"= program,
+                  "Sub Program Area" = sub_program,
+                  "Interaction Type"= interaction_type,
+                  "Beneficiary" = beneficiary,
+                  "Sub Beneficiary"= sub_beneficiary,
+                  "Cost Category"= cost_category,
+                  "Sub Cost Category" =sub_cost_category,
+                  "Fiscal Year" = fiscal_year,
+                  "COP Budget New Funding"=cop_budget_new_funding,
+                  "COP Budget Pipeline"=cop_budget_pipeline,
+                  "Total Planned Funding" = cop_budget_total,
+                  "Workplan Budget" = workplan_budget_amt,
+                  "Expenditure"=expenditure_amt,
+                  "Prime Partner Type"=primepartner_org_type,
+                  "Is Indigenous Prime Partner"=is_indigenous_primepartner)%>%
+    dplyr::mutate(`Data Stream`="FSD")
+
+#replace NAs with 0s
+    df<-df%>%
+      mutate_at(vars(`COP Budget New Funding`:`Expenditure`),~replace_na(.,0))
+
+    #add in a quarter for the budget data, this is useful for doing quarterly analytics of budget data
+   # df$Quarter<-c("Quarter 1")
+
+#convert budget columns to numeric
+    df<-df%>%
+      dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`))%>%
+      dplyr::mutate(`COP Budget New Funding`=as.numeric(`COP Budget New Funding`))%>%
+      dplyr::mutate(`COP Budget Pipeline`=as.numeric(`COP Budget Pipeline`))%>%
+      dplyr::mutate(`Total Planned Funding`=as.numeric(`Total Planned Funding`))%>%
+      dplyr::mutate(`Expenditure`=as.numeric(`Expenditure`))
+    
+  return(df)
+}
+```
+3. Clean the Initiative function (optional)
+```{r}
+Initiative_Clean<-function(df){
+  
+#nested read_msd. Can be removed and run separately
+  df<-read_msd(df)
+  
+# Drop columns you don't need and rename  
+df<- df%>%dplyr::select( -c('primepartner_duns','award_number')) %>%
+    dplyr::rename("Operating Unit"= operatingunit,
+                  "Country"= country,
+                  "Funding Agency"= fundingagency,
+                  "Prime Partner Name"= primepartner_name,
+                  "Mechanism ID"=mech_code,
+                  "Mechanism Name" = mech_name,
+                  "Program Area"= program,
+                  "Sub Program Area" = sub_program,
+                  "Interaction Type"= interaction_type,
+                  "Beneficiary" = beneficiary,
+                  "Sub Beneficiary"= sub_beneficiary,
+                  "Fiscal Year" = fiscal_year,
+                  "Total Planned Funding" = cop_budget_total,
+                  "Prime Partner Type"=primepartner_org_type,
+                  "Is Indigenous Prime Partner"=is_indigenous_primepartner,
+                  "Record Type"=record_type,
+                  "Budget Code"=budget_code)%>%
+    dplyr::mutate(`Data Stream`="Initiative")
+
+#Convert columns into characters
+df<-df%>%
+    dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`)) %>% 
+    dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`))
+  
+#add in a quarter for the budget data, this is useful for doing quarterly analytics of budget data
+ # df$Quarter<-c("Quarter 1")
+  
+#add in OU column
+  df<-df %>%  dplyr::mutate(`OU` = `Operating Unit`)
+  
+  return(df)
+}
+```
+
+##Step 5: Reading in the datasets and applying the functions.
+Read in the MSD/FSD and clean it using our functions. Pattern is helpful to use here but be careful that you are not picking up more than one dataset.
+
+```{r}
+#Here you are pointing the script to your "Datasets" folder to search for that pattern
+filesMSD<-list.files("Datasets",pattern="MER_Structured_Datasets_OU_IM_FY18-21_20201113_v1_1",full.names = TRUE)
+df.MSD<-purrr::map_dfr(.x=filesMSD,
+                    .f=~MSD_Clean(.x))
+
+filesFSD<-list.files("Datasets",pattern="Financial_Structured_Dataset_COP17-20_20201113_v1_1",full.names = TRUE)
+df.FSD<-purrr::map_dfr(.x=filesFSD,
+                       .f=~FSD_Clean(.x))
+#Initiative (optional)
+filesInitiative<-list.files("Datasets",pattern="Comprehensive_Budget_Dataset_COP17-20_20201113_v1_1_",full.names = TRUE)
+df.Initv<-purrr::map_dfr(.x=filesInitiative,
+                       .f=~Initiative_Clean(.x))
+```
+
+##Step 6: Bind the FSD/MSD and initiative output and re-order the columns
+```{r} 
+df.FSDMSD<-bind_rows(df.FSD,df.MSD)%>%
+
+#add in OU column
+  dplyr::mutate(`OU` = `Operating Unit`)
+
+#add in Initiative (optional)
+df.FSDMSD<-bind_rows(df.FSDMSD,df.Initv)%>%
+  
+#Add in agency category column to group agencies
+  dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+  mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                    ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                    ifelse(`Agency Category` =="Dedup", "Dedup","Other"))))
+  
+#re-order the columns
+df.FSDMSD<-df.FSDMSD%>%
+  dplyr::relocate(`OU`,`Operating Unit`:`Fiscal Year`,`Data Stream`,`COP Budget New Funding`:`Expenditure`)
+ 
+```
+## Step 7: Read in the historical base dataset for FY15-17. It is kept in the EA team google folder. If youre computer is fast enough, feel free to use the direct google sheets pull. Otherwise please download it and store on your local drive. Below is the function that you must run first before importing it
+``` {r}
+#BudH<-read_sheet("https://docs.google.com/spreadsheets/d/16qyfp2iFx4AdFrrULu1ZMCtSyNirDRLG/edit?dls=true#gid=1443252964")
+BudH<-read_xlsx(here("Datasets","Historic.Budget.ER.MER.2015-2017.xlsx"))
+ BudH<-BudH%>%
+   dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`))%>%
+   dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`))%>%
+   dplyr::mutate(`Cost Category`=as.character(`Cost Category`))%>%
+   dplyr::mutate(`Sub Cost Category`=as.character(`Sub Cost Category`))%>%
+   dplyr::mutate(`Total Planned Funding` = as.numeric(`Total Planned Funding`))%>%
+   dplyr::mutate(`Expenditure` = as.numeric(`Expenditure`))%>%
+   dplyr::mutate(`Results` = as.double(`Results`))%>%
+   dplyr::mutate(`Targets` = as.double(`Targets`))
+```
+## Step 8: Bind the historic dataset with the combined FSD/MSD
+```{r}
+#Bind the historic budget dataset with our combined FSD/MSD
+
+df.EA<-bind_rows(df.FSDMSD,BudH)
+df.EA<-df.EA%>%
+  dplyr::relocate(`OU`,`Operating Unit`:`Fiscal Year`,`Data Stream`,`COP Budget New Funding`:`Expenditure`)
+#Rename Applied Pipeline to AP
+df.EA$`Program Area`[df.EA$`Program Area` == "Applied Pipeline"]<-"AP"
+# Update Site Level
+df.EA<-df.EA%>%
+  dplyr::mutate(`Site Level` = `Program Area`)
+  df.EA<-df.EA%>%
+    dplyr::mutate(`Site Level` = ifelse(`Site Level` == "C&T" , "Site",
+                                  ifelse(`Site Level` == "PREV" , "Site",
+                                  ifelse(`Site Level` == "HTS" , "Site",
+                                  ifelse(`Site Level` == "SE" , "Site",
+                                    ifelse(`Site Level` == "ASP", "Above Site",
+                                    ifelse(`Site Level` == "AP", "AP",
+                                    ifelse(`Site Level` =="PM", "PM","N/A"))))))))
+# update interaction level to include PM
+df.EA$`Interaction Type`[df.EA$`Program Area` == "PM"]<-"PM"
+```
+##Step 9: Update the USAID Internal partners list. 
+
+You can download it from the LP team. The end goal will be to have a better integration between LP and the "is indigenous" column. This is a temporary solution hopefully. In any case, please access the list here:https://docs.google.com/spreadsheets/d/1MQviknJkJDttGdNEJeNaYPKmHCw6BqPuJ0C5cslV5IE/edit#gid=2111082418. You might have to clean it in Excel to remove duplicates that have different classifcations (named in separate years). Below we named my dataset the day that I updated it
+```{r}
+Partner_Types<-read_xlsx(here("Datasets","Partner types 11.20.2020.xlsx"))
+Partner_Types<-Partner_Types%>%
+  dplyr::mutate(`Mechanism ID`= as.character(`Mechanism ID`))
+df.EA<-left_join(df.EA,Partner_Types,by ="Mechanism ID", name="Partner Types-USAID Internal")
+
+  
+```
+
+##Step 9A: Fun extra piece if you'd like to triangulate the data with outlays and just looking at 2020 Reach out to Ben if you'd like to work with this data, and I can send our outlay file
+```{r}
+filesOutlay<-list.files("Datasets",pattern="outlay meeting",full.names = TRUE)
+outlay<-readxl::read_xlsx(filesOutlay)
+outlay<-outlay%>%
+  dplyr::mutate_at(vars(`Outlay`:`Planning Level`),~replace_na(.,0))%>%
+  dplyr::mutate(`Outlay` = as.numeric(`Outlay`))%>%
+  dplyr::mutate(`Planning Level` = as.numeric(`Planning Level`))%>%
+  dplyr::mutate(`Fiscal Year` = as.character(`Fiscal Year`))%>%
+  dplyr::rename(`Prime Partner Name` = "Partner Name")
+#bind to integrated dataset
+EA.Integrated.Budget.MER.Outlay<-bind_rows(df.EA,outlay)
+#update partner types and filter for FY20/USAID
+EA.Integrated.Budget.MER.Outlay<-  left_join(EA.Integrated.Budget.MER.Outlay,Partner_Types,by="Mechanism ID")%>%
+   dplyr::filter(`Funding Agency`=="USAID")%>%
+  dplyr::filter(`Fiscal Year`=="2020")
+
+```
+
+##Step 10: Write the file to output folder.
+Write CSV
+```{r echo=T, results='hide'} 
+write_csv(df.EA, "FY20.Q4.Budget.ER.MER Dataset_preclean.11.21.2020.csv")
+#for naming, we can add in clean vs pre-clean it should be FYXX.QX.Budget.ER.MER Dataset_clean/preclean.MM.DD.YY of data release.csv
+
+```
+
+
+
+
+_______________________________________________________________________________
+
+6. Send to google drive (beta). This takes a long time and isn't recommended
+```{r}
+
+ss1 <- gs4_create(
+  "Budgter.MER.FSD. 9.22.2020",
+  sheets = "chickwts")%>%
+sheet_write(df.FSDMSD, ss = ss1, sheet = "chickwts")
+
+```
+
+
+  

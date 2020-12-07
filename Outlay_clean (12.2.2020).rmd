@@ -1,0 +1,188 @@
+---
+title: "Outlay_Clean"
+author: "EA team"
+date: "December 2, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(dplyr)
+library(tidyverse)
+library(readxl)
+library(ICPIutilities)
+library(glamr)
+library(purrr)
+library(here)
+library(googlesheets4)
+```
+
+
+
+```{r}
+# Cleaning outlays
+
+Outlay_clean<-function(df){
+df<-readxl::read_xlsx(df)
+df<-df%>%
+  dplyr::mutate_at(vars(`Outlay`:`Planning Level-Budget Team`),~replace_na(.,0))%>%
+  dplyr::mutate(`Outlay` = as.numeric(`Outlay`))%>%
+  dplyr::mutate(`Planning Level-Budget Team` = as.numeric(`Planning Level-Budget Team`))
+  df<-df%>%
+    dplyr::mutate(`Fiscal Year` = as.character(`Fiscal Year`))%>%
+ # dplyr::rename(`Prime Partner Name` = "Partner Name")%>%
+  dplyr::mutate(`Data Stream`="Outlay")
+#df<-df%>%
+ # dplyr::select(-'Planning Level')
+df<-df%>%
+  pivot_wider(names_from = `Quarter`, values_from = `Outlay`)  
+#df<-df%>%
+  dplyr::mutate_at(vars(`Quarter 2`:`Quarter 3`), funs(replace(., duplicated (.), 0)))
+df<-df%>%
+  pivot_longer(
+    cols = `Quarter 2` : `Quarter 4`,
+    names_to="Quarter",
+    values_to="Outlays"
+  )
+return(df)
+}
+```
+#Run the outlay function
+```{r}
+filesOutlay<-list.files("Datasets",pattern="outlay meeting 12.2.2020",full.names = TRUE)
+df.Outlay<-purrr::map_dfr(.x=filesOutlay,
+                    .f=~Outlay_clean(.x))
+
+```
+
+```{r}
+MSD_Test_Treat<-function(
+  df){
+  df<-read_msd(df)
+  df<-df%>%
+    filter(standardizeddisaggregate == "Modality/Age/Sex/Result"|standardizeddisaggregate == "Age/Sex/HIVStatus") %>%dplyr::select( - c('operatingunituid', 'pre_rgnlztn_hq_mech_code', 'primepartner_duns',	'award_number',	
+                                                                                                      'categoryoptioncomboname', 'ageasentered', 'trendsfine', 'trendssemifine',	
+                                                                                                      'statushiv',	'statustb', 'statuscx', 'hiv_treatment_status', 'otherdisaggregate', 'otherdisaggregate_sub', 'source_name','numeratordenom','disaggregate','standardizeddisaggregate')) %>% 
+    dplyr::rename("Operating Unit"= "operatingunit",
+                  "Country"= "countryname",
+                  "Funding Agency"= "fundingagency",
+                  "Prime Partner Name"= "primepartner",
+                  "Mechanism ID"="mech_code",
+                  "Mechanism Name" = "mech_name",
+                  "Indicator Type"="indicatortype",
+                  "Indicator"="indicator",
+                  "Targets"="targets",
+                  "Quarter 1"="qtr1",
+                  "Quarter 2"="qtr2",
+                  "Quarter 3"="qtr3",
+                  "Quarter 4"="qtr4",
+                  "Cumulative"="cumulative",
+                  "Fiscal Year"="fiscal_year")
+  
+ df<-df%>%
+    mutate_at(vars(`Quarter 1`:`Quarter 4`),~replace_na(.,0))%>% 
+    mutate_at(vars(`Targets`),~replace_na(.,0))%>%
+    mutate_at(vars(`Cumulative`),~replace_na(.,0))%>%
+    
+    
+    #using pivot_long
+    pivot_longer(
+      cols = `Quarter 1`: `Quarter 4`,
+      names_to="Quarter",
+      values_to="Results"
+    )
+  
+  df<-df %>% dplyr::mutate(`Data Stream` = "MER") %>%
+  dplyr:: mutate(`Operating Unit`=as.character(`Operating Unit`))%>%
+  dplyr::mutate(`Mechanism ID` = as.character(`Mechanism ID`))%>%
+  dplyr::mutate(`Country` = as.character(`Country`))%>%
+  dplyr::mutate(`Prime Partner Name` = as.character(`Prime Partner Name`))%>%
+  dplyr::mutate(`Mechanism Name` = as.character(`Mechanism Name`))%>%
+  dplyr::mutate(`Fiscal Year` = as.character(`Fiscal Year`))
+  
+  #df<-as.data.frame(df)
+  
+  return(df)
+}
+
+```
+
+2. Bring in the MSD and run the functions
+```{r}
+filesMSD<-list.files("Datasets",pattern="MER_Structured_Datasets_OU_IM_FY18-21_20200918_v2_1",full.names = TRUE)
+df.MSD<-purrr::map_dfr(.x=filesMSD,
+                    .f=~MSD_Test_Treat(.x))
+```
+
+```{r}
+FSD_Clean<-function(df){
+  df<-read_msd(df)
+  # Drop columns you don't need and rename
+  df<-df %>%dplyr::select( - c('primepartner_duns',	'award_number',	
+                                       'subrecipient_duns')) %>% 
+    dplyr::rename("Operating Unit"= operatingunit,
+                  "Country"= country,
+                  "Funding Agency"= fundingagency,
+                  "Prime Partner Name"= primepartner_name,
+                  "Subrecipient Name"= subrecipient_name,
+                  "Mechanism ID"=mech_code,
+                  "Mechanism Name" = mech_name,
+                  "Program Area"= program,
+                  "Sub Program Area" = sub_program,
+                  "Interaction Type"= interaction_type,
+                  "Beneficiary" = beneficiary,
+                  "Sub Beneficiary"= sub_beneficiary,
+                  "Cost Category"= cost_category,
+                  "Sub Cost Category" =sub_cost_category,
+                  "Fiscal Year" = fiscal_year,
+                  "COP Budget New Funding"=cop_budget_new_funding,
+                  "COP Budget Pipeline"=cop_budget_pipeline,
+                  "Total Planned Funding" = cop_budget_total,
+                  "Workplan Budget" = workplan_budget_amt,
+                  "Expenditure"=expenditure_amt,
+                  "Prime Partner Type"=primepartner_org_type,
+                  "Is Indigenous Prime Partner"=is_indigenous_primepartner)%>%
+    dplyr::mutate(`Data Stream`="FSD")
+    df<-df%>%
+      mutate_at(vars(`COP Budget New Funding`:`Expenditure`),~replace_na(.,0))
+    df$Quarter<-c("Quarter 1")
+    df<-df%>%
+      dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`))%>%
+      dplyr::mutate(`COP Budget New Funding`=as.numeric(`COP Budget New Funding`))%>%
+      dplyr::mutate(`COP Budget Pipeline`=as.numeric(`COP Budget Pipeline`))%>%
+      dplyr::mutate(`Total Planned Funding`=as.numeric(`Total Planned Funding`))%>%
+      dplyr::mutate(`Expenditure`=as.numeric(`Expenditure`))
+  
+  
+  return(df)
+}
+```
+
+Read in FSD
+```{r}
+filesFSD<-list.files("Datasets",pattern="Financial_Structured_Dataset_FY18-21_20200918_v2_1",full.names = TRUE)
+df.FSD<-purrr::map_dfr(.x=filesFSD,
+                       .f=~FSD_Clean(.x))
+```
+
+```{r}
+#Filter out for FY and USAID if neccessary:
+df.FSDMSD<-bind_rows(df.FSD,df.MSD)%>%
+
+#add in OU column
+  dplyr::mutate(`OU` = `Operating Unit`)
+
+
+df.FSDMSD<-df.FSDMSD%>%
+  dplyr::filter(`Funding Agency`=="USAID")%>%
+  dplyr::filter(`Fiscal Year`=="2020")
+
+df.FsdMsdOutlay<-bind_rows(df.FSDMSD,df.Outlay)
+  df.FsdMsdOutlay<-df.FsdMsdOutlay%>%
+    dplyr::select( -c('Prime Partner Type':'Subrecipient Name'))
+df.FsdMsdOutlay<-df.FsdMsdOutlay%>%
+  dplyr::relocate(`OU`,`Operating Unit`:`Fiscal Year`,`Data Stream`,`COP Budget New Funding`:`Expenditure`,`Outlays`)
+write_csv(df.FsdMsdOutlay, "FY20.Q4.Budget.ER.MER.Outlay Dataset_preclean.12.2.2020.csv")
+#for naming, we can add in clean vs pre-clean it should be FYXX.QX.Budget.ER.MER Dataset_clean/preclean.MM.DD.YY of data release.csv
+```
