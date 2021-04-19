@@ -51,7 +51,7 @@ here("FASTS")
 #Read in Fast files
 Fast<-list.files("FASTS",full.names = TRUE)
 
-#Run Function for the COVID-E tab
+#Run Function for the Mech List 
 FAST_MECHSLIST<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df, "Mechs List-R")
