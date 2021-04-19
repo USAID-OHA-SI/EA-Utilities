@@ -1,7 +1,7 @@
 
 # Title: FAST COVID-E Tab Data Aggregation
 # Author: Vanessa Da Costa & Jairo Montes
-# Last updated: "April 15th, 2021"
+# Last updated: "April 19th, 2021"
 # Purpose: Compile all COVID-19 data from the COVID-E tab in the COP21 Fast & add Operating Unit, Country, and Funding Agency
 #Document needs: Folder of FASTS, df.OU_Country reference file
 
