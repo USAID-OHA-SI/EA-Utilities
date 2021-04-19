@@ -130,14 +130,18 @@ df.COVID19_2<- left_join(df.COVID19, df.MechsList_short, by = "Mechanism ID") %>
   dplyr::mutate(`Target completion date of activity`= recode (`Target completion date of activity`, "Q4 FY22"= "2022-09-30")) %>%
   dplyr::mutate(`Target completion date of activity`= recode (`Target completion date of activity`, "Q4 FY21"= "2021-09-30")) 
 
-#output final datafram
+#Data frame for Operating Unit and Country
+df.OU_Country <- read.csv ("OU_Country.csv" , check.names = FALSE)
+
+#output final dataframe
 df.COVID19_Final<- left_join(df.COVID19_2, df.OU_Country, by = "Country") 
 
 
 #Export the dataset to your file folder of choice manually change the date & version (if needed)
-write_csv(df.COVID19_Final,"COP21 FAST and Data Pack Submissions/Dataset/COVID19_DATE_v1.csv")
+write_csv(df.COVID19_Final, "~/Documents/COVID_DATE_v1.csv")
 
 
 ###FINISHED!!!
+
 
 
