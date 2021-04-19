@@ -52,6 +52,35 @@ here("FASTS")
 Fast<-list.files("FASTS",full.names = TRUE)
 
 #Run Function for the COVID-E tab
+FAST_MECHSLIST<-function(df){
+  #nested read_csv. Can be removed and run separately
+  df<-read_xlsx(df, "Mechs List-R")
+  #include columns of interest
+  df<- df %>%  
+    dplyr::select ("Operating Unit", "Funding Agency", "Partner Name","Mechanism Name", "Mechanism ID", "Is Indigenous Partner?") %>% 
+    #Rename to match BUDGET_ER_MER Dataset
+    dplyr::rename( 
+      "Prime Partner Name" =`Partner Name`, 
+      "Is Indigenous Prime Partner" =`Is Indigenous Partner?`,
+    ) %>%
+    
+    dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`)) %>% 
+    
+    #Add in agency category column to group agencies
+    dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+    mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                      ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                             ifelse(`Agency Category` =="Dedup", "Dedup","Other"))))
+  
+  return(df)
+} 
+
+#Create MechList Data Frame
+#Data frame for Mech List
+df.MechsList <- purrr::map_dfr(.x = Fast,
+                               .f = ~ FAST_MECHSLIST(.x))
+
+#Run Function for the COVID-E tab
 FAST_COVID<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df, "COVID-E", skip=3)
