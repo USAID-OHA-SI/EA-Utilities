@@ -1,7 +1,7 @@
 ---
 title: "COP21 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
-date: "4/15/2021"
+date: "4/26/2021"
 output: html_document
 ---
 
@@ -514,7 +514,7 @@ df_all<-get_names(df_all)
 #tailor Datapack to append to FAST wrangling    
   df_dp<- df_all %>%
   dplyr::filter(disagg != "KeyPop") %>%
-  dplyr::group_by(operatingunit, countryname, fundingagency, mech_code, primepartner, mech_name, indicator, fiscal_year) %>%
+  dplyr::group_by(operatingunit, countryname, fundingagency, mech_code, primepartner, mech_name, indicator, fiscal_year, numeratordenom) %>%
   dplyr::summarise(targets = sum(targets, na.rm = TRUE)) %>% 
   dplyr::ungroup() %>% 
   dplyr::rename(`Operating Unit` = operatingunit,
