@@ -1,7 +1,7 @@
 ---
 title: "COP21 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
-date: "4/26/2021"
+date: "05/05/2021"
 output: html_document
 ---
 
@@ -26,7 +26,6 @@ install.packages("splitstackshape")
 install.packages("googledrive")
 install.packages("devtools")
 devtools::install_github("USAID-OHA-SI/glamr")
-devtools::install_github("USAID-OHA-SI/tameDP")
 remotes::install_github("ICPI/ICPIutilities")
 install.packages("purrr")
 install.packages("devtools")
@@ -292,13 +291,15 @@ By first creating the functions, it will allow us to, later on, clean up/transfo
   df<-read_xlsx(df, "Commodities-E", skip=3)
   #include columns of interest
   df<- df %>%  
-  dplyr::select('Mechanism ID': 'Beneficiary', 'Initiative Name', 'Major Category': 'Item', 'Commodity Quantity', 'Unit Price', 'Unit Cost':'Total Item Budget')  %>%
+      dplyr::rename("Specify Other Procurement" =`Specify 'Other' Procurement`) %>% 
+  dplyr::select('Mechanism ID': 'Beneficiary', 'Initiative Name', 'Major Category': 'Item', 'Specify Other Procurement','Commodity Quantity', 'Unit Price', 'Unit Cost':'Total Item Budget')  %>%
   dplyr::mutate(`Program Area (Service Delivery Only)`= as.character(`Program Area (Service Delivery Only)`)) %>% 
   dplyr::mutate(`Initiative Name`= as.character(`Initiative Name`)) %>% 
   dplyr::mutate(`Major Category`= as.character(`Major Category`)) %>% 
   dplyr::mutate(`Minor Category`= as.character(`Minor Category`)) %>% 
   dplyr::mutate(`Beneficiary`= as.character(`Beneficiary`)) %>% 
   dplyr::mutate(`Item`= as.character(`Item`)) %>% 
+  dplyr::mutate(`Specify Other Procurement`= as.character(`Specify Other Procurement`)) %>% 
 
 
     #Remove dashes in Facility-based testing and Community-Based Testing temporarily
@@ -386,7 +387,7 @@ By first creating the functions, it will allow us to, later on, clean up/transfo
 6A)FAST BY EARMARKS_OU [NOT NEEDED FOR PRIMARY DATASET]
 ```{r}
   #Clean the FAST SCM tab using the function for Earmarks data-roll up to OU level so it can be compared to PLL Earmarks. 
-  FAST_Earmarks_OU <-function(df){
+ # FAST_Earmarks_OU <-function(df){
     #nested read_csv. Can be removed and run separately
     df<-read_xlsx(df, "Standard COP Matrix-R", skip=3) %>% 
     dplyr::select('Operating Unit', 'Implementation Year', 'C&T Earmark':'GBV GHP-State')%>%
@@ -497,7 +498,7 @@ By first creating the functions, it will allow us to, later on, clean up/transfo
 7)DATAPACK
 ```{R}
 #load packages
-  library(tameDP) #version 3.2
+  library(tameDP) #version 3.2.4
   library(purrr)
  
 #identify all the Data Pack files (pull in validated datapacks apps.datim.org/datapack)
@@ -578,8 +579,8 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
   df.Commodities<- left_join(df.Commodities_pre, df.MechsList, by = "Mechanism ID")
   
   #Data frame for Earmarks from FAST by OU
-  df.Earmarks_OU <- purrr::map_dfr(.x = Fast,
-                                .f = ~ FAST_Earmarks_OU(.x))
+ # df.Earmarks_OU <- purrr::map_dfr(.x = Fast,
+                #                .f = ~ FAST_Earmarks_OU(.x))
   
   #Data frame for Earmarks from FAST by IM
   df.Earmarks_IM <- purrr::map_dfr(.x = Fast,
@@ -590,17 +591,16 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
 
   #Data frame for Earmarks from PLL
   
-  df.Earmarks_PLL <- read.csv ("COP21 FAST and Data Pack Submissions/Reference/COP21 Earmarks PLL.csv", check.names = FALSE)  
+ # df.Earmarks_PLL <- read.csv ("COP21 FAST and Data Pack Submissions/Reference/COP21 Earmarks PLL.csv", check.names = FALSE)  
   
   #Merge in Earmarks from PLL dataset to Earmarks from FAST
-  df.Earmarks_OU<- merge(df.Earmarks_PLL,df.Earmarks_OU, by = "Operating Unit") 
+  #df.Earmarks_OU<- merge(df.Earmarks_PLL,df.Earmarks_OU, by = "Operating Unit") 
   
 ```
 ##Step 6: Bind Dataframes
 Master COP21 FAST/DATAPACK File
 Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Commodities'
 ```{r}
- 
 
  df.COP21PlanningDataset<-bind_rows(df.Intervention,df.CCA, df.Initiative, df.Commodities, df.Earmarks_IM) 
   df.COP21PlanningDataset <- df.COP21PlanningDataset %>%
@@ -611,7 +611,7 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
     `Agency Category` = case_when(
      `Funding Agency` == "USAID/WCF"~ "USAID",
       TRUE ~ `Agency Category` )) %>% 
-      dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Digital Health Investments', 'Earmark') %>% 
+      dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
      dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
         dplyr::rename("Country" = `Operating Unit`)
 
@@ -620,19 +620,12 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
     #RUN IF HAVE FASTS AND DATAPACK 
       df.COP21PlanningDataset_Final <-bind_rows(df.COP21PlanningDataset,df_dp) 
 
-    #RUN IF HAVE FASTS ONLY  
-      #df.COP21PlanningDataset_2 <-df.COP21PlanningDataset %>% 
-       #dplyr::rename("Country" = `Operating Unit`)
-   
-   #FINAL DATASET!
-  #df.COP21PlanningDataset_Final <- merge(df.COP21PlanningDataset, df.OU_Country, by = "Country")
-  
-  
 
 ```
 
 ##Step 7:Review Data
 ```{r}
+  unique(df.COP21PlanningDataset$`Data Stream`)
   unique(df.COP21PlanningDataset_Final$`Program Area`)
   glimpse(df.Earmarks_OU)
   df.COP21PlanningDataset%>%
@@ -641,10 +634,10 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
     summarize (sum(`Total Planned Funding`))
 ```
 
-##Step8: Write the file to output folder.
+##Step 8: Write the file to output folder.
 Update the date
 ```{r}
-  write_csv(df.COP21PlanningDataset_Final,"COP21 FAST and Data Pack Submissions/Dataset/FAST_DATAPACK_04_15_v1.csv")
+  write_csv(df.COP21PlanningDataset_Final,"COP21 FAST and Data Pack Submissions/Dataset/FAST_DATAPACK_05_04_v2.csv")
 ```
 
 ##Additional Steps
@@ -705,5 +698,18 @@ EARMARKS OU DATASET
   df.COVID19_Final<- left_join(df.COVID19_2, df.OU_Country, by = "Country") 
 
   
-  write_csv(df.COVID19_Final,"COP21 FAST and Data Pack Submissions/Dataset/COVID19_04_15_v1.csv")
+    write_csv(df.COVID19_Final,"COP21 FAST and Data Pack Submissions/Dataset/COVID19_04_15_v1.csv")
 ```
+
+##STEP 11: Aggregate DHI Investments Tab into its own dataset
+```{r}  
+     
+df.DHI <-df.Earmarks_IM %>% 
+      dplyr::select('Planning Cycle':'Digital Health Investments', 'Agency Category') %>% 
+      distinct(.keep_all= TRUE)
+  
+  write_csv(df.DHI,"COP21 FAST and Data Pack Submissions/Dataset/DHI_05_05_v1.csv")
+```
+
+
+
