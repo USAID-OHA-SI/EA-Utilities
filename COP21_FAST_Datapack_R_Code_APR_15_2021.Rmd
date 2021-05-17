@@ -1,7 +1,7 @@
 ---
 title: "COP21 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
-date: "05/05/2021"
+date: "05/17/2021"
 output: html_document
 ---
 
@@ -637,7 +637,7 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 ##Step 8: Write the file to output folder.
 Update the date
 ```{r}
-  write_csv(df.COP21PlanningDataset_Final,"COP21 FAST and Data Pack Submissions/Dataset/FAST_DATAPACK_05_04_v2.csv")
+  write_csv(df.COP21PlanningDataset_Final,"COP21 FAST and Data Pack Submissions/Dataset/FAST_DATAPACK_05_17_v1.csv")
 ```
 
 ##Additional Steps
@@ -706,10 +706,16 @@ EARMARKS OU DATASET
      
 df.DHI <-df.Earmarks_IM %>% 
       dplyr::select('Planning Cycle':'Digital Health Investments', 'Agency Category') %>% 
+       dplyr::rename("Country" = `Operating Unit`) %>% 
       distinct(.keep_all= TRUE)
   
-  write_csv(df.DHI,"COP21 FAST and Data Pack Submissions/Dataset/DHI_05_05_v1.csv")
+   df.DHI_Final <- merge(df.DHI, df.OU_Country, by = "Country")
+
+  write_csv(df.DHI_Final,"COP21 FAST and Data Pack Submissions/Dataset/DHI_05_17_v1.csv")
 ```
+
+
+
 
 
 
