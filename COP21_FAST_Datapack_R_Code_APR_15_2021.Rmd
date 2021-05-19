@@ -1,7 +1,7 @@
 ---
 title: "COP21 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
-date: "05/17/2021"
+date: "05/19/2021"
 output: html_document
 ---
 
@@ -706,13 +706,16 @@ EARMARKS OU DATASET
      
 df.DHI <-df.Intervention %>% 
       dplyr::rename("Country" = `Operating Unit`) %>% 
-      dplyr::select('Country':'Digital Health Investments', 'Agency Category', 'Data Stream') %>% 
+      dplyr::select('Country':'Digital Health Investments', 'Data Stream') %>% 
+    dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+      mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                      ifelse(`Agency Category` == "USAID/WCF", "USAID",
+                                      ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                             ifelse(`Agency Category` =="Dedup", "Dedup","Other"))))) %>%
       distinct(.keep_all= TRUE)
   
-     df.DHI_Final <- merge(df.DHI, df.OU_Country, by = "Country")
-   
-   write_csv(df.DHI_Final,"COP21 FAST and Data Pack Submissions/Dataset/DHI_05_17_v2.csv")  
-
+   df.DHI_Final <- merge(df.DHI, df.OU_Country, by = "Country")
+  write_csv(df.DHI_Final,"COP21 FAST and Data Pack Submissions/Dataset/DHI_05_19_v1.csv")  
 
 
 
