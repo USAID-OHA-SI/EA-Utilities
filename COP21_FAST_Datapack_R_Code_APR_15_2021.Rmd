@@ -704,15 +704,15 @@ EARMARKS OU DATASET
 ##STEP 11: Aggregate DHI Investments Tab into its own dataset
 ```{r}  
      
-df.DHI <-df.Earmarks_IM %>% 
-      dplyr::select('Planning Cycle':'Digital Health Investments', 'Agency Category') %>% 
-       dplyr::rename("Country" = `Operating Unit`) %>% 
+df.DHI <-df.Intervention %>% 
+      dplyr::rename("Country" = `Operating Unit`) %>% 
+      dplyr::select('Country':'Digital Health Investments', 'Agency Category', 'Data Stream') %>% 
       distinct(.keep_all= TRUE)
   
-   df.DHI_Final <- merge(df.DHI, df.OU_Country, by = "Country")
+     df.DHI_Final <- merge(df.DHI, df.OU_Country, by = "Country")
+   
+   write_csv(df.DHI_Final,"COP21 FAST and Data Pack Submissions/Dataset/DHI_05_17_v2.csv")  
 
-  write_csv(df.DHI_Final,"COP21 FAST and Data Pack Submissions/Dataset/DHI_05_17_v1.csv")
-```
 
 
 
