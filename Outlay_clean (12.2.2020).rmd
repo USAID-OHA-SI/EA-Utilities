@@ -50,7 +50,7 @@ return(df)
 ```
 #Run the outlay function
 ```{r}
-filesOutlay<-list.files("Datasets",pattern="outlay meeting 12.2.2020",full.names = TRUE)
+filesOutlay<-list.files("Datasets",pattern="outlay meeting 12.3.2020",full.names = TRUE)
 df.Outlay<-purrr::map_dfr(.x=filesOutlay,
                     .f=~Outlay_clean(.x))
 
