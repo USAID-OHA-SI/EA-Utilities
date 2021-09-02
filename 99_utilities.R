@@ -168,10 +168,81 @@ get_initiative<-function(df){
     gather(`Funding Type`,`Total Planned Funding`, `New Funding`:`Applied Pipeline`) %>%
     
     #Pivot GAP, GHP-STATE, GHP-USAID to 'funding_account' with value as 'COP Budget New Funding'
-    #  gather(funding_account,`COP Budget New Funding`, `GAP`:`GHP-USAID`) %>%
+     # gather(funding_account,`COP Budget New Funding`, `GAP`:`ESF`) %>%
     
     #Create variable 'Data stream' with Initiative
     dplyr::mutate(`Data Stream`="Initiative")  %>% #consider renaming to specify FAST
+    
+    #Convert columns into characters
+    dplyr::mutate(`Initiative Name`= as.character(`Initiative Name`)) %>% 
+    dplyr::mutate(`Funding Category`= as.character(`Funding Category`)) %>% 
+    dplyr::mutate(`Mechanism Name`=as.character(`Mechanism Name`)) %>% 
+    dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`)) %>% 
+    dplyr::mutate(`Operating Unit`= as.character(`Operating Unit`)) %>% 
+    dplyr::mutate(`Prime Partner Name`=as.character(`Prime Partner Name`)) %>% 
+    dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`)) %>% 
+    dplyr::mutate(`Planning Cycle`=as.character(`Planning Cycle`)) %>% 
+    dplyr::mutate(`Interaction Type`=as.character(`Interaction Type`)) %>% 
+    dplyr::mutate(`Record Type`=as.character(`Record Type`)) %>% 
+    dplyr::mutate(`Program Area`=as.character(`Program Area`)) %>% 
+    dplyr::mutate(`Sub Program Area`=as.character(`Sub Program Area`)) %>% 
+    dplyr::mutate(`Beneficiary`=as.character(`Beneficiary`)) %>% 
+    dplyr::mutate(`Sub Beneficiary`=as.character(`Sub Beneficiary`)) %>% 
+    dplyr::mutate(`Funding Agency`=as.character(`Funding Agency`)) %>% 
+    dplyr::mutate(`Is Indigenous Prime Partner`= as.character(`Is Indigenous Prime Partner`)) %>% 
+    dplyr::mutate(`Prime Partner Type`= as.character(`Prime Partner Type`)) %>% 
+    
+    #Convert  budget into numeric
+    dplyr::mutate(`Total Planned Funding`=as.numeric(`Total Planned Funding`)) %>% 
+    
+    #Replace NAs in numeric columns
+    dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))%>%
+    
+    
+    #Drop all rows without an OU specified 
+    drop_na('Operating Unit')   %>%
+    
+    #recode values for different variables as needed
+    dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery")) %>%
+    dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "NSD"= "Non Service Delivery"))  %>%
+    
+    
+    #Add in agency category column to group agencies
+    dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+    mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                      ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                             ifelse(`Agency Category` =="Dedup", "Dedup","Other")))) %>% 
+    dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
+  return(df)
+}
+
+get_funding_account<-function(df){
+  #nested read_csv. Can be removed and run separately
+  df<-read_xlsx(df, "Standard COP Matrix-R", skip=3)
+  #include columns of interest
+  df<- df %>%  dplyr::select('Planning Cycle','Operating Unit':'Partner Name', 'Mechanism Name':'Initiative', 'Implementation Year':'Minor Beneficiary', 'GAP':'ESF')  %>%
+    #Rename to match BUDGET_ER_MER Dataset
+    dplyr::rename("Prime Partner Name" =`Partner Name`, 
+                  "Is Indigenous Prime Partner" =`Is Indigenous Partner?`,
+                  "Prime Partner Type" =`Partner Org Type`,
+                  "Initiative Name" =`Initiative`,
+                  "Fiscal Year"= `Implementation Year`, 
+                  "Program Area" = `Major Program`,
+                  "Sub Program Area" = `Sub Program`,
+                  "Interaction Type" = `SD/NSD`,
+                  "Beneficiary" =`Major Beneficiary`,
+                  "Sub Beneficiary" =`Minor Beneficiary`,
+                 # "New Funding" =`Total New Funding Sources`,
+                  #"Applied Pipeline" =`Applied Pipeline Amount`,) %>%
+    )%>%
+    #Pivot COP Budget New Funding & COP Budget Pipeline to 'funding_type' with value as 'Total Planned Funding'
+    #gather(`Funding Type`,`Total Planned Funding`, `New Funding`:`Applied Pipeline`) %>%
+    
+    #Pivot GAP, GHP-STATE, GHP-USAID to 'funding_account' with value as 'COP Budget New Funding'
+    gather(`Funding Account`,`Total Planned Funding`, `GAP`:`ESF`) %>%
+    
+    #Create variable 'Data stream' with Initiative
+    dplyr::mutate(`Data Stream`="Funding Account")  %>% #consider renaming to specify FAST
     
     #Convert columns into characters
     dplyr::mutate(`Initiative Name`= as.character(`Initiative Name`)) %>% 
