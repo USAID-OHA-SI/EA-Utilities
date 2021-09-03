@@ -19,6 +19,7 @@
     library(here)
     library(janitor)
     library(readxl)
+library(gt)
     
   
   # Set paths  
@@ -35,7 +36,10 @@
     
     df_fy21q3_report <- read_excel("~/Data/FY21Q3/FY21Q3 O&O USAID Submission 16.8.21.xlsx", 
                                    sheet = "OGAC Deliverable", skip = 1)%>%
-      clean_names()
+      clean_names()%>%
+      dplyr::mutate_at(vars(available_adjustments),~replace_na(.,0))%>%
+      mutate("available_net"=available+available_adjustments)
+      
      # mutate("period"="fy21q3")
     
     df_fy21q2_report<-read_excel("~/Data/FY21Q3/FY21 Q2 O&O USAID Submission 21.05.24 (1).xlsx",
@@ -63,7 +67,7 @@
                    values_to="fy21q2") 
     
     df_fy21q3_report<-df_fy21q3_report%>%
-      pivot_longer(cols=available:pipeline_total,
+      pivot_longer(cols=available:available_net,
                    names_to="type",
                    values_to="fy21q3")
     
@@ -157,21 +161,68 @@ df_ou_outlay_full<-bind_rows(df_all1, df_scm)%>%
                  values_to="value")%>%
     dplyr::group_by(fund_year,period,type)%>%
     summarise_at(vars(value), sum, na.rm = TRUE)%>%
+    ungroup()%>%
     dplyr::filter(period=="fy21q3")%>%
     pivot_wider(
       
-      names_from=period,
-      values_from=value)
+      names_from="type",
+      values_from=value)%>%
+    
+    ##Availabel+expired-obligations=unobligated
+    #  unliqd=obs-outlays
+    #total pipe=avail+expired-outlays
+    #unliuquid=obs-outlays
+    
+    dplyr::mutate("unobligated"=available_net+expired-obligations)%>%
+    dplyr::mutate("unliquidated"=obligations-outlays)%>%
+    dplyr::mutate("pipeline_perct"=pipeline_total/available_net)%>%
+    dplyr::relocate(pipeline_perct, .before = unobligated)
+  
+  get_pretty_budget_tables_fund_year<-function(df){
+    df_fund_year_data%>%
+      dplyr::select(-(period))%>%
+      gt()%>% 
+      cols_hide(
+        column = c(
+          "available":"pipeline_check"
+        ))%>%
+      fmt_percent(
+        columns = c(`pipeline_perct`),
+        decimals = 2)%>%
+      fmt_currency( # add dolar signs
+        columns = c(`pipeline_total`,`unobligated`,`unliquidated`),
+        decimals = 0,
+        currency = "USD")%>%
+      tab_options(
+        table.font.names = "Source Sans Pro"
+      ) %>% 
+      
+      cols_width(
+        everything() ~ px(140))%>%
+      cols_label(
+        fund_year = "FY",
+        pipeline_total = "Pipeline Total",
+        pipeline_perct = "Pipeline Percent of Total Available",
+        unobligated="Unobligated",
+        unliquidated = "Unliquidated"
+      )%>%
+      tab_header(
+        title = glue::glue(" Fiscal Year 2021 Q2  Financial Performance Summary"))%>%
+      gt::tab_source_note("Created by EA Branch and Budget Branch")
+    return(df)
+  }
 
     
-    ##=======get fund year data
+    ##=======get fund type data
     df_fund_type_data<-df_all_data%>%
       pivot_longer(cols=fy21q3:fy21q1,
                    names_to="period",
                    values_to="value")%>%
       dplyr::group_by(program,period,type)%>%
       summarise_at(vars(value), sum, na.rm = TRUE)%>%
-      dplyr::filter(period=="fy21q2")%>%
+      ungroup()%>%
+      #dplyr::filter(period=="fy21q3")%>%
+      filter(!program=="NA")%>%
     pivot_wider(
       
       names_from="type",
@@ -182,12 +233,95 @@ df_ou_outlay_full<-bind_rows(df_all1, df_scm)%>%
     #total pipe=avail+expired-outlays
     #unliuquid=obs-outlays
     
-      dplyr::mutate("unobligated"=available+expired-obligations)%>%
+      dplyr::mutate("unobligated"=available_net+expired-obligations)%>%
       dplyr::mutate("unliquidated"=obligations-outlays)%>%
-      dplyr::mutate("pipeline_perct"=pipeline_total/available)%>%
-      pivot_longer(cols:)
-      
-    df_all1<-df_all1%>%
-      pivot_longer(cols=fy21_q3:fy21_q1,
+      dplyr::mutate("pipeline_perct"=pipeline_total/available_net)%>%
+      dplyr::relocate(pipeline_perct, .before = unobligated)
+    
+    ## for tableau
+    df_fund_type_data<-df_all_data%>%
+      pivot_longer(cols=fy21q3:fy21q1,
                    names_to="period",
+                   values_to="value")%>%
+      dplyr::group_by(program,period,type)%>%
+      summarise_at(vars(value), sum, na.rm = TRUE)%>%
+      ungroup()%>%
+      #dplyr::filter(period=="fy21q3")%>%
+      filter(!program=="NA")%>%
+      pivot_wider(
+        
+        names_from="type",
+        values_from=value)%>%
+      
+      ##Availabel+expired-obligations=unobligated
+      #  unliqd=obs-outlays
+      #total pipe=avail+expired-outlays
+      #unliuquid=obs-outlays
+      
+      dplyr::mutate("unobligated"=available_net+expired-obligations)%>%
+      dplyr::mutate("unliquidated"=obligations-outlays)%>%
+      dplyr::mutate("pipeline_perct"=pipeline_total/available_net)%>%
+      dplyr::relocate(pipeline_perct, .before = unobligated)%>%
+      pivot_longer(cols=available:unliquidated,
+                   names_to="type",
                    values_to="value")
+      
+    write.csv(df_fund_type_data,"fy21q2 fund type data.csv")
+    
+get_pretty_budget_tables_fund_type<-function(df, periods=c("fy20q4","fy21q1","fy21q2","fy21q3","fy21q4")){
+  df<-df_all_data%>%
+    pivot_longer(cols=fy21q3:fy21q1,
+                 names_to="period",
+                 values_to="value")%>%
+    dplyr::group_by(program,period,type)%>%
+    summarise_at(vars(value), sum, na.rm = TRUE)%>%
+    ungroup()%>%
+    dplyr::filter(period=="fy21q3" )%>%
+    filter(!program=="NA")%>%
+    pivot_wider(
+      
+      names_from="type",
+      values_from=value)%>%
+    
+    ##Availabel+expired-obligations=unobligated
+    #  unliqd=obs-outlays
+    #total pipe=avail+expired-outlays
+    #unliuquid=obs-outlays
+    
+    dplyr::mutate("unobligated"=available_net+expired-obligations)%>%
+    dplyr::mutate("unliquidated"=obligations-outlays)%>%
+    dplyr::mutate("pipeline_perct"=pipeline_total/available_net)%>%
+    dplyr::relocate(pipeline_perct, .before = unobligated)%>%
+      dplyr::select(-(period))%>%
+  gt()%>% 
+  cols_hide(
+    column = c(
+      "available":"pipeline_check"
+    ))%>%
+  fmt_percent(
+    columns = c(`pipeline_perct`),
+    decimals = 2)%>%
+  fmt_currency( # add dolar signs
+    columns = c(`pipeline_total`,`unobligated`,`unliquidated`),
+    decimals = 0,
+    currency = "USD")%>%
+  tab_options(
+    table.font.names = "Source Sans Pro"
+  ) %>% 
+  
+  cols_width(
+    everything() ~ px(140))%>%
+  cols_label(
+    program = "Program",
+    pipeline_total = "Pipeline Total",
+   pipeline_perct = "Pipeline Percent of Total Available",
+    unobligated="Unobligated",
+   unliquidated = "Unliquidated"
+  )%>%
+  tab_header(
+    title = glue::glue(" Fiscal Year {periods} Account Financial Performance Summary"))%>%
+  gt::tab_source_note("Created by EA Branch and Budget Branch")
+return(df)
+}
+
+
