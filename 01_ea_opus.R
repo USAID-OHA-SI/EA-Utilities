@@ -33,7 +33,7 @@
   source("GitHub/EA-Utilities/99_utilities.R")
 
 # LOAD DATA ============================================================================  
-#load the FAST you are working with here
+#load the baseline FAST you are working with here
     fast<-"~/Data/Uganda_COP21_FAST_OPU_V2.xlsx"
   df_commodities_1<-get_commodities(fast)
   df_cross_cutting<-get_cross_cutting(fast) 
@@ -46,7 +46,7 @@
   
   df_commodities<- left_join(df_commodities_1, df_mech_list, by = "Mechanism ID")
 
-# MUNGE Financeial Data ============================================================================
+# MUNGE OPU data============================================================================
   df_in_fa<-full_join(df_initiative,df_funding_account)
   df_opu_dataset<-bind_rows(df_intervention,df_cross_cutting,df_commodities, df_earmarks,df_initiative,df_funding_account, df_ou_earmarks)  %>%
     dplyr::filter(`Total Planned Funding` !=0) %>%
@@ -56,7 +56,7 @@
       `Agency Category` = case_when(
         `Funding Agency` == "USAID/WCF"~ "USAID",
         TRUE ~ `Agency Category` )) %>% 
-    dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
+    dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost','Funding Category':'Funding Account', 'Earmark') %>% 
     dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
     dplyr::mutate(`Country` = `Operating Unit`) %>%
     dplyr::rename(interaction_type="Interaction Type")
@@ -115,6 +115,7 @@
   df_opu_dataset$`Funding Agency`=paste(df_opu_dataset$`Funding Agency`,"-",df_opu_dataset$`Report Type`)
   df_opu_dataset$`Operating Unit`=paste(df_opu_dataset$`Operating Unit`,"-",df_opu_dataset$`Report Type`)
   df_opu_dataset$`Mechanism Name`=paste(df_opu_dataset$`Mechanism Name`,"-",df_opu_dataset$`Report Type`)
+  df_opu_dataset$`Earmark`=paste(df_opu_dataset$`Earmark`,"-",df_opu_dataset$`Report Type`)
   
  countrys_to_filter<-df_opu_dataset%>%
    dplyr::distinct(Country)%>%
@@ -124,6 +125,8 @@
      interaction_type = case_when(
        `Program Area` == "PM"~ "PM",
        TRUE ~ `interaction_type` ))
+ 
+ write.csv(df_opu_dataset, paste0(countrys_to_filter, "OPU file_finance_testing",Sys.Date(), ".csv"))
   
  # Current data ============================================================================
  df_fsd<-si_path()%>%
