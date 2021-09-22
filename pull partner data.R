@@ -74,12 +74,11 @@ library(fs) #to create folders
       ungroup() %>% 
       arrange(country, mech_code)
     
-    #get folders
+    #create output folders folders
     dir_create("ER21IMFinance")
   
-# VIZ ============================================================================
-
-  #  
+    #create output budget files
+    walk(mechs, print_financial)
 
 # SPINDOWN ============================================================================
 
