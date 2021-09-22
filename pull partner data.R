@@ -2,7 +2,7 @@
 # AUTHOR: Ben Kasdan | SIEI
 # LICENSE: MIT
 # DATE: 2021-09-22
-# NOTES: 
+# NOTES: use this function to pull partner COP20 Budget, workplan budget, expenditure
 
 # LOCALS & SETUP ============================================================================
 
@@ -38,9 +38,10 @@ library(fs) #to create folders
       gophr::read_msd()
     
   # Functions  
+  
     
     
-    print_financial <- function(mech){
+    print_financial_cop20 <- function(mech){
       df_mech <- df_totals %>% 
         filter(mech_code == mech)
       
@@ -50,7 +51,8 @@ library(fs) #to create folders
                name = glue("ER21IMFinance/COP20_{country}_{mech_code}_Financial.csv"))
       
       print(glue("Printing...{meta$country}-{meta$mech_code}"))
-      
+      line="blah text blah blah etc etc"
+      write(line,file="file.path(meta$name).csv",append=TRUE)
       write_csv(df_mech, file.path(meta$name), na = "")
     }
 
@@ -69,7 +71,9 @@ library(fs) #to create folders
       mutate("Program Area: Sub Program Area-Service Level"=glue("{program}: {sub_program}-{interaction_type}"))%>%
     
       mutate("Beneficiary-Sub Beneficiary"=glue("{beneficiary}-{sub_beneficiary}"))%>%  
-      group_by(country, mech_code, mech_name, primepartner, fiscal_year, `Program Area: Sub Program Area-Service Level`,`Beneficiary-Sub Beneficiary`) %>% 
+      mutate("Cost Category-Sub Cost Category"=glue("{cost_category}-{sub_cost_category}"))%>%
+      group_by(country, mech_code, mech_name, primepartner, fiscal_year, `Program Area: Sub Program Area-Service Level`,`Beneficiary-Sub Beneficiary`,`Cost Category-Sub Cost Category`) %>% 
+      #group_by(country, mech_code, mech_name, primepartner, fiscal_year, `Program Area: Sub Program Area-Service Level`,`Beneficiary-Sub Beneficiary`)%>%
       summarise_at(vars(cop_budget_total, workplan_budget_amt, expenditure_amt), sum, na.rm = TRUE) %>% 
       ungroup() %>% 
       arrange(country, mech_code)
@@ -78,7 +82,7 @@ library(fs) #to create folders
     dir_create("ER21IMFinance")
   
     #create output budget files
-    walk(mechs, print_financial)
+    walk(mechs,  print_financial_cop20)
 
 # SPINDOWN ============================================================================
 
