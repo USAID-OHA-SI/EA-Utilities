@@ -50,9 +50,13 @@ library(fs) #to create folders
         mutate(country = str_remove_all(country, " |'"),
                name = glue("ER21IMFinance/COP20_{country}_{mech_code}_Financial.csv"))
       
+      note<-data.frame(country="The data above presents COP budgets, Workplan Budgets, and expenditure. Only workplan budgets and expenditure will have data at the cost category level.")
+      
+      note2<-data.frame(country="For questions please reach out to the EA Branch")
+      
+      df_mech<-bind_rows(df_mech,note,note2)
+      
       print(glue("Printing...{meta$country}-{meta$mech_code}"))
-      line="blah text blah blah etc etc"
-      write(line,file="file.path(meta$name).csv",append=TRUE)
       write_csv(df_mech, file.path(meta$name), na = "")
     }
 
@@ -77,12 +81,17 @@ library(fs) #to create folders
       summarise_at(vars(cop_budget_total, workplan_budget_amt, expenditure_amt), sum, na.rm = TRUE) %>% 
       ungroup() %>% 
       arrange(country, mech_code)
+   
+   
     
     #create output folders folders
     dir_create("ER21IMFinance")
   
     #create output budget files
     walk(mechs,  print_financial_cop20)
+    
+    #test one
+    print_financial_cop20("70212")
 
 # SPINDOWN ============================================================================
 
