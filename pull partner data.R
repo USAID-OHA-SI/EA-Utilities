@@ -25,7 +25,19 @@
     library(glue)
     library(googledrive)
 library(fs) #to create folders
+
+# Output folder ============================================================================
+
+load_secrets()
+
+#global material folder
+glbl_id <- "1YjTe1H2oQjsPX_Tr7kirRUOnC0KKe4e0" #ER21 Folder
+
+#upload folder
+fldr_id <- "1mFOnqSNeRYCpEzN9Kzu0HJBQ88x2maXG" #ER21 special folder for these files. Get this once you set up the folder below
     
+
+
     
   
   # Set paths  
@@ -33,28 +45,31 @@ library(fs) #to create folders
    
     si_paths 
     
-    df_fsd<-si_path()%>%
-      return_latest("Fin")%>%
-      gophr::read_msd()
+  
     
   # Functions  
   
     
-    
-    print_financial_cop20 <- function(mech){
+    print_financial_cop20 <- function(mechs){
       df_mech <- df_totals %>% 
-        filter(mech_code == mech)
+        filter(mech_code == mechs)
+          
+        df1<-df_mech %>%
+      adorn_totals("row",,,,-fiscal_year) %>%
+          tail(1)%>%as.vector()%>%
+          mutate(fiscal_year=as.integer(fiscal_year))
+          
       
       meta <- df_mech %>% 
         distinct(country, mech_code) %>%
         mutate(country = str_remove_all(country, " |'"),
                name = glue("ER21IMFinance/COP20_{country}_{mech_code}_Financial.csv"))
       
-      note<-data.frame(country="The data above presents COP budgets, Workplan Budgets, and expenditure. Only workplan budgets and expenditure will have data at the cost category level.")
+      note2<-data.frame(country="The data above presents COP budgets, workplan budgets, and expenditures. Only workplan budgets and expenditure will have data at the cost category level.")
       
-      note2<-data.frame(country="For questions please reach out to the EA Branch")
-      
-      df_mech<-bind_rows(df_mech,note,note2)
+      note3<-data.frame(country="For questions please reach out to the EA Branch at oha.ea@usaid.gov")
+      note1<-data.frame(country=" ")
+      df_mech<-bind_rows(df_mech,df1,note1,note2,note3)
       
       print(glue("Printing...{meta$country}-{meta$mech_code}"))
       write_csv(df_mech, file.path(meta$name), na = "")
@@ -62,7 +77,9 @@ library(fs) #to create folders
 
 # LOAD DATA ============================================================================  
 
-  msd
+    df_fsd<-si_path()%>%
+      return_latest("Fin")%>%
+      gophr::read_msd()
 
 # MUNGE ============================================================================
   #get financial total
@@ -82,7 +99,12 @@ library(fs) #to create folders
       ungroup() %>% 
       arrange(country, mech_code)
    
-   
+# CREATE Budget  FILES -----------------------------------------------------
+    
+    #list of mechanism
+    mechs <- df_totals %>% 
+      distinct(mech_code) %>% 
+      pull()   
     
     #create output folders folders
     dir_create("ER21IMFinance")
@@ -93,5 +115,22 @@ library(fs) #to create folders
     #test one
     print_financial_cop20("70212")
 
-# SPINDOWN ============================================================================
-
+# MOVE TO DRIVE -----------------------------------------------------------
+    
+    #create folder for upload
+    drive_mkdir("ER21 COP Budget, Workplan Budget, Expenditure Files",
+                path = as_id(glbl_id)) #path is to the ER FY21 Folder but can be changed
+    
+    #identify list of   
+    local_files <- list.files("ER21IMFinance", full.names = TRUE)
+    
+    #push to drive
+    walk(local_files,
+         ~ drive_upload(.x,
+                        path = as_id(fldr_id), #path is to the ER21 test file folder
+                        name = basename(.x),
+                        type = "spreadsheet"))
+    
+    #remove all local files
+    unlink("ER21IMFinance", recursive = TRUE)
+    
