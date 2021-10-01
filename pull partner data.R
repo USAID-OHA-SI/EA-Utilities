@@ -24,6 +24,7 @@
     library(googlesheets4)
     library(glue)
     library(googledrive)
+library(janitor)
 library(fs) #to create folders
 
 # Output folder ============================================================================
@@ -61,9 +62,9 @@ fldr_id <- "1mFOnqSNeRYCpEzN9Kzu0HJBQ88x2maXG" #ER21 special folder for these fi
           
       
       meta <- df_mech %>% 
-        distinct(country, mech_code) %>%
+        distinct(country, mech_code, mech_name) %>%
         mutate(country = str_remove_all(country, " |'"),
-               name = glue("ER21IMFinance/COP20_{country}_{mech_code}_Financial.csv"))
+               name = glue("ER21_Financial_Programmatic/COP20__Financial_{country}_{mech_code}_{mech_name}.csv"))
       
       note2<-data.frame(country="The data above presents COP budgets, workplan budgets, and expenditures. Only workplan budgets and expenditure will have data at the cost category level.")
       
@@ -71,7 +72,7 @@ fldr_id <- "1mFOnqSNeRYCpEzN9Kzu0HJBQ88x2maXG" #ER21 special folder for these fi
       note1<-data.frame(country=" ")
       df_mech<-bind_rows(df_mech,df1,note1,note2,note3)
       
-      print(glue("Printing...{meta$country}-{meta$mech_code}"))
+      print(glue("Printing...{meta$country}-{meta$mech_code}-{meta$mech_name}"))
       write_csv(df_mech, file.path(meta$name), na = "")
     }
 
@@ -107,7 +108,7 @@ fldr_id <- "1mFOnqSNeRYCpEzN9Kzu0HJBQ88x2maXG" #ER21 special folder for these fi
       pull()   
     
     #create output folders folders
-    dir_create("ER21IMFinance")
+    dir_create("ER21_Financial_Programmatic")
   
     #create output budget files
     walk(mechs,  print_financial_cop20)
@@ -118,7 +119,7 @@ fldr_id <- "1mFOnqSNeRYCpEzN9Kzu0HJBQ88x2maXG" #ER21 special folder for these fi
 # MOVE TO DRIVE -----------------------------------------------------------
     
     #create folder for upload
-    drive_mkdir("ER21 COP Budget, Workplan Budget, Expenditure Files",
+    drive_mkdir("COP20 Financial and Programmatic Files",
                 path = as_id(glbl_id)) #path is to the ER FY21 Folder but can be changed
     
     #identify list of   
