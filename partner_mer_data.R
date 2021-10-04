@@ -1,4 +1,4 @@
-# PURPOSE: Pull Partner Data
+# PURPOSE: Pull Partner MER  Data
 # AUTHOR: Ben Kasdan | SIEI
 # LICENSE: MIT
 # DATE: 2021-10-01
@@ -28,7 +28,7 @@ library(fs)
     ifelse(y > 0.000, (x / y), NA_real_)
   }
   
-  
+  #to do-figure out a way to print 81138 for Liberia and Ghana
 
 # LOAD DATA ============================================================================  
 
@@ -70,7 +70,8 @@ library(fs)
     ungroup() %>% 
     mutate(target_achievement=percent_clean(cumulative,targets))%>%
     ungroup()%>% 
-    arrange(countryname, mech_code)
+    arrange(countryname, mech_code)%>%
+    filter(mech_code!="81138")
   
   
   # CREATE Budget  FILES -----------------------------------------------------
@@ -87,7 +88,7 @@ library(fs)
   walk(mechs,  print_mer_cop20)
   
   #test one
-  print_mer_cop20("8113")
+  print_mer_cop20("81138")
   
   # MOVE TO DRIVE -----------------------------------------------------------
   
