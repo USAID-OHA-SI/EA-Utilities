@@ -46,12 +46,12 @@ library(fs)
     
     
     meta <- df_mech %>% 
-      distinct(countryname, mech_code,mech_name) %>%
+      distinct(countryname, mech_code) %>%
       mutate(countryname = str_remove_all(countryname, " |'"),
-             name = glue("ER21_Financial_Programmatic/COP20_MER_{countryname}_{mech_code}_{mech_name}.csv"))
+             name = glue("ER21_Financial_Programmatic/COP20_{countryname}_{mech_code}_MER.csv"))
     
     
-    print(glue("Printing...{meta$countryname}-{meta$mech_code}-{meta$mech_name}"))
+    print(glue("Printing...{meta$mech_code}"))
     write_csv(df_mech, file.path(meta$name), na = "")
   }
   
@@ -63,6 +63,7 @@ library(fs)
     dplyr::filter(standardizeddisaggregate=="Total Numerator")%>%
     dplyr::filter(fiscal_year=="2021")%>%
     dplyr::filter(fundingagency=="USAID")%>%
+    mutate(country = ifelse(operatingunit == countryname, operatingunit, glue("{operatingunit}-{countryname}")))%>%
     select(fiscal_year,operatingunit,countryname,fundingagency,primepartner,mech_code,mech_name,indicator,targets,cumulative)%>%
     group_by(countryname, mech_code, mech_name, primepartner, fiscal_year,indicator)%>%
     summarise_at(vars(cumulative,targets), sum, na.rm = TRUE) %>% 
@@ -86,7 +87,7 @@ library(fs)
   walk(mechs,  print_mer_cop20)
   
   #test one
-  print_mer_cop20("70212")
+  print_mer_cop20("8113")
   
   # MOVE TO DRIVE -----------------------------------------------------------
   
@@ -95,7 +96,7 @@ library(fs)
               path = as_id(glbl_id)) #path is to the ER FY21 Folder but can be changed
   
   #identify list of   
-  local_files <- list.files("ER21IMFinance", full.names = TRUE)
+  local_files <- list.files("ER21_Financial_Programmatic", full.names = TRUE)
   
   #push to drive
   walk(local_files,
@@ -105,5 +106,5 @@ library(fs)
                       type = "spreadsheet"))
   
   #remove all local files
-  unlink("ER21IMFinance", recursive = TRUE)
+  unlink("ER21_Financial_Programmatic", recursive = TRUE)
   

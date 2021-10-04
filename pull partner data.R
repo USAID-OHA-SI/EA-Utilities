@@ -7,24 +7,14 @@
 # LOCALS & SETUP ============================================================================
 
   # Libraries
-    library(glitr)
-    library(glamr)
-    library(gisr)
-    library(Wavelength)
-    library(gophr)
-    library(tidyverse)
-    library(scales)
-    library(sf)
-    library(extrafont)
-    library(tidytext)
-    library(patchwork)
-    library(ggtext)
-    library(here)
-    library(gt)
-    library(googlesheets4)
-    library(glue)
-    library(googledrive)
+
+library(glamr)
+library(gophr)
+library(googlesheets4)
+library(glue)
+library(googledrive)
 library(janitor)
+library(tidyverse)
 library(fs) #to create folders
 
 # Output folder ============================================================================
@@ -62,9 +52,9 @@ fldr_id <- "1mFOnqSNeRYCpEzN9Kzu0HJBQ88x2maXG" #ER21 special folder for these fi
           
       
       meta <- df_mech %>% 
-        distinct(country, mech_code, mech_name) %>%
+        distinct(country, mech_code) %>%
         mutate(country = str_remove_all(country, " |'"),
-               name = glue("ER21_Financial_Programmatic/COP20__Financial_{country}_{mech_code}_{mech_name}.csv"))
+               name = glue("ER21_Financial_Programmatic/COP20__{country}_{mech_code}_ER.csv"))
       
       note2<-data.frame(country="The data above presents COP budgets, workplan budgets, and expenditures. Only workplan budgets and expenditure will have data at the cost category level.")
       
@@ -72,7 +62,7 @@ fldr_id <- "1mFOnqSNeRYCpEzN9Kzu0HJBQ88x2maXG" #ER21 special folder for these fi
       note1<-data.frame(country=" ")
       df_mech<-bind_rows(df_mech,df1,note1,note2,note3)
       
-      print(glue("Printing...{meta$country}-{meta$mech_code}-{meta$mech_name}"))
+      print(glue("Printing...{meta$country}-{meta$mech_code}"))
       write_csv(df_mech, file.path(meta$name), na = "")
     }
 
@@ -90,10 +80,10 @@ fldr_id <- "1mFOnqSNeRYCpEzN9Kzu0HJBQ88x2maXG" #ER21 special folder for these fi
       filter(planning_cycle =="COP20")%>%
       mutate(country = ifelse(operatingunit == countryname, operatingunit, glue("{operatingunit}-{countryname}")))%>%
     
-      mutate("Program Area: Sub Program Area-Service Level"=glue("{program}: {sub_program}-{interaction_type}"))%>%
+      mutate("Program Area: Sub Program Area-Service Level"=glue("{program}: {sub_program}- {interaction_type}"))%>%
     
-      mutate("Beneficiary-Sub Beneficiary"=glue("{beneficiary}-{sub_beneficiary}"))%>%  
-      mutate("Cost Category-Sub Cost Category"=glue("{cost_category}-{sub_cost_category}"))%>%
+      mutate("Beneficiary-Sub Beneficiary"=glue("{beneficiary}- {sub_beneficiary}"))%>%  
+      mutate("Cost Category-Sub Cost Category"=glue("{cost_category}- {sub_cost_category}"))%>%
       group_by(country, mech_code, mech_name, primepartner, fiscal_year, `Program Area: Sub Program Area-Service Level`,`Beneficiary-Sub Beneficiary`,`Cost Category-Sub Cost Category`) %>% 
       #group_by(country, mech_code, mech_name, primepartner, fiscal_year, `Program Area: Sub Program Area-Service Level`,`Beneficiary-Sub Beneficiary`)%>%
       summarise_at(vars(cop_budget_total, workplan_budget_amt, expenditure_amt), sum, na.rm = TRUE) %>% 
