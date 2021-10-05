@@ -28,7 +28,7 @@ library(fs)
     ifelse(y > 0.000, (x / y), NA_real_)
   }
   
-  #to do-figure out a way to print 81138 for Liberia and Ghana
+ 
 
 # LOAD DATA ============================================================================  
 
@@ -41,7 +41,7 @@ library(fs)
 
   print_mer_cop20 <- function(mechs){
     df_mech <- df %>% 
-      filter(mech_code == mechs)
+      filter(`country-mech` == mechs)
     
     
     
@@ -64,13 +64,15 @@ library(fs)
     dplyr::filter(fiscal_year=="2021")%>%
     dplyr::filter(fundingagency=="USAID")%>%
     mutate(country = ifelse(operatingunit == countryname, operatingunit, glue("{operatingunit}-{countryname}")))%>%
-    select(fiscal_year,operatingunit,countryname,fundingagency,primepartner,mech_code,mech_name,indicator,targets,cumulative)%>%
-    group_by(countryname, mech_code, mech_name, primepartner, fiscal_year,indicator)%>%
+    mutate("country-mech"=glue("{country}-{mech_code}"))%>%
+    
+    select(fiscal_year,operatingunit,countryname,fundingagency,primepartner,mech_code,mech_name,`country-mech`,indicator,targets,cumulative)%>%
+    group_by(countryname,`country-mech`, mech_code, mech_name, primepartner, fiscal_year,indicator)%>%
     summarise_at(vars(cumulative,targets), sum, na.rm = TRUE) %>% 
     ungroup() %>% 
     mutate(target_achievement=percent_clean(cumulative,targets))%>%
     ungroup()%>% 
-    arrange(countryname, mech_code)%>%
+    arrange(`country-mech`)%>%
     filter(mech_code!="81138")
   
   
@@ -78,7 +80,7 @@ library(fs)
   
   #list of mechanism
   mechs <- df %>% 
-    distinct(mech_code) %>% 
+    distinct(`country-mech`) %>% 
     pull()   
   
   #create output folders folders
@@ -88,7 +90,7 @@ library(fs)
   walk(mechs,  print_mer_cop20)
   
   #test one
-  print_mer_cop20("81138")
+  print_mer_cop20("Angola-81010")
   
   # MOVE TO DRIVE -----------------------------------------------------------
   
