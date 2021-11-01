@@ -1,13 +1,7 @@
-## version 2.2: 
-## New Features in 2.2 include:
-##            * Exports to Google Drive (must set path)
-##            * Sets working directory to location of R code file
-## New Features in 2.0 include:
-##            * Cleans df_fsd to change "Program Management" to "IM Program Management"
-##              for 2019 data.
-##            * Removes analysis lines from version 1.0
-##            * Adds Progress Tracker
-##            * Debugs walk function formatting
+## version 2.3: 
+## New Features in 2.3 include:
+##            * Cleaner formatting for workbook via openxlsx
+##            *
 
 # LOCALS & SETUP =======================================================================
 
@@ -52,9 +46,8 @@ filter_one_mech <- function(mech, df = df_fsd){
 gen_df_no_cost <- function(df, null_rm=TRUE){
   df <- 
     df %>% 
-    group_by(planning_cycle, fiscal_year, program, sub_program, beneficiary, sub_beneficiary,
-             interaction_type
-             ) %>% 
+    group_by(planning_cycle, fiscal_year, program, sub_program, interaction_type, 
+             beneficiary, sub_beneficiary) %>% 
     summarise_at(vars(cop_budget_total, workplan_budget_amt, expenditure_amt), 
                  sum, na.rm = null_rm) %>%
     ungroup()
@@ -68,13 +61,16 @@ gen_df_with_cost <- function(df){
                       "primepartner", "mech_name", "mech_code")
   
   df <- df[ , !names(df) %in% drop_cols_temp]
-  df[order(df$fiscal_year, decreasing=TRUE), ]
+  df[order(df$fiscal_year, decreasing=TRUE), ] %>%
+    select(planning_cycle, fiscal_year, everything())
 }
 
 
 ## Pipeline
 ## dr is the string pathway for the local directory for outputs. 
 ## Default dr is RStudio's working environment
+template_path <- 'partnerDataTemplateV1.xlsx'
+
 wb_pipeline <- function(mech, dr = "", df = df_fsd){
   df_mech <- filter_one_mech(mech)
   df_no_cost <- gen_df_no_cost(df_mech)
@@ -84,23 +80,16 @@ wb_pipeline <- function(mech, dr = "", df = df_fsd){
   # NOTE: if column order changes, this code will break
   mech_id <- df_mech[1,1:5]
   
-  # Notes for end-user
-  note1<-data.frame(Note="The data above presents COP budgets, workplan budgets, and expenditures. Only workplan budgets and expenditure will have data at the cost category level.")
+  wb <- loadWorkbook(template_path)
   
-  note2<-data.frame(Contact="For questions please reach out to the EA Branch at oha.ea@usaid.gov")
-  
-  wb <- createWorkbook()
-  addWorksheet(wb, sheetName = "Notes and Data Dictionary")
-  addWorksheet(wb, sheetName = "Intervention-level IM data")
-  addWorksheet(wb, sheetName = "Cost Category-level IM data")
-  setColWidths(wb, sheet = 1, cols = 1:5, widths = 20)
-  
-  writeDataTable(wb, sheet = 2, x = df_no_cost, tableStyle = "TableStyleLight9")
-  writeDataTable(wb, sheet = 3, x = df_with_cost, tableStyle = "TableStyleLight9")
-  
-  writeDataTable(wb, sheet = 1, x = mech_id, startRow = 1)
-  writeDataTable(wb, sheet = 1, x = note1, startRow = 3)
-  writeDataTable(wb, sheet = 1, x = note2, startRow = 5)
+  writeData(wb, sheet = 2, x = df_no_cost, startRow = 2, colNames = FALSE,
+                 withFilter = FALSE)
+  writeData(wb, sheet = 3, x = df_with_cost, startRow = 2, colNames = FALSE,
+                 withFilter = FALSE)
+  writeData(wb, sheet = 1, x = mech_id, startRow = 4, colNames = FALSE, 
+                 withFilter = FALSE)
+  addFilter(wb, sheet = 2, rows = 1, cols = 1:10)
+  addFilter(wb, sheet = 3, rows = 1, cols = 1:11)
   
   file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_ERdata.xlsx")
   saveWorkbook(wb, file_name, overwrite = TRUE)
@@ -172,67 +161,67 @@ uniq_subprogs <- lapply(program_group, unique)
 uniq_subprogs[4]
 
 # # TEST FUNCTIONS =======================================================================
-# # Test one mechanism on function pipeline
-# test_mech <- "70212"
-# 
-# test_df <- filter_one_mech(test_mech)
-# test_df_no_cost <- gen_df_no_cost(test_df)
-# test_df_with_cost <- gen_df_with_cost(test_df)
-# 
-# test_output <- wb_pipeline(test_mech)
+# Test one mechanism on function pipeline
+test_mech <- "70212"
+
+test_df <- filter_one_mech(test_mech)
+test_df_no_cost <- gen_df_no_cost(test_df)
+test_df_with_cost <- gen_df_with_cost(test_df)
+
+test_output <- wb_pipeline(test_mech)
 
 
 # Generate Files=========================================================================
 
-# List of mechanisms
-lst_mech <- 
-  df_fsd %>% 
-  distinct(mech_code) %>% 
-  pull()
-
-# removes backlash for creation of actual directory
-fisc_dir_name = substr(fisc_dir, 1, nchar(fisc_dir)-1)
-#create output folders folders locally
-dir_create(fisc_dir_name)
-
-# Generate list from 1 to length of list
-lst_positions <- seq(1, length(lst_mech))
-# Global Progress Tracking variables
-global_progress <- 1
-total_files <- length(lst_mech)
-
-# Create output budget files
-walk(lst_mech,
-      function(x, y) progress_tracker(global_progress = global_progress, 
-                                      mech_id = x,
-                                      dr = fisc_dir
-                                      ))
-
-# Length of # of unique mechs matches the number of files created in ER directory
-total_files == length(list.files(fisc_dir))
-
-
-
-# UPLOAD==============================================================================
-#### lines 212-217, 223-234 from Ben Kasdan's code "pull partner data.R"
-
-#create folder for upload
-drive_mkdir(fisc_dir_name,
-            path = as_id(glbl_id))
-
-# Get path for created directory
-drive_ids <- drive_ls(path = as_id(glbl_id))
-drive_fisc_dir <- drive_ids$id[drive_ids$name == fisc_dir_name]
-
-#identify list of   
-local_files <- list.files(fisc_dir_name, full.names = TRUE)
-
-#push to drive
-walk(local_files,
-     ~ drive_upload(.x,
-                    path = as_id(drive_fisc_dir), #path is to the ER21 test file folder
-                    name = basename(.x),
-                    type = "spreadsheet"))
-
-#remove all local files
-unlink(fisc_dir_name, recursive = TRUE)
+# # List of mechanisms
+# lst_mech <- 
+#   df_fsd %>% 
+#   distinct(mech_code) %>% 
+#   pull()
+# 
+# # removes backlash for creation of actual directory
+# fisc_dir_name = substr(fisc_dir, 1, nchar(fisc_dir)-1)
+# #create output folders folders locally
+# dir_create(fisc_dir_name)
+# 
+# # Generate list from 1 to length of list
+# lst_positions <- seq(1, length(lst_mech))
+# # Global Progress Tracking variables
+# global_progress <- 1
+# total_files <- length(lst_mech)
+# 
+# # Create output budget files
+# walk(lst_mech,
+#       function(x, y) progress_tracker(global_progress = global_progress, 
+#                                       mech_id = x,
+#                                       dr = fisc_dir
+#                                       ))
+# 
+# # Length of # of unique mechs matches the number of files created in ER directory
+# total_files == length(list.files(fisc_dir))
+# 
+# 
+# 
+# # UPLOAD==============================================================================
+# #### lines 212-217, 223-234 from Ben Kasdan's code "pull partner data.R"
+# 
+# #create folder for upload
+# drive_mkdir(fisc_dir_name,
+#             path = as_id(glbl_id))
+# 
+# # Get path for created directory
+# drive_ids <- drive_ls(path = as_id(glbl_id))
+# drive_fisc_dir <- drive_ids$id[drive_ids$name == fisc_dir_name]
+# 
+# #identify list of   
+# local_files <- list.files(fisc_dir_name, full.names = TRUE)
+# 
+# #push to drive
+# walk(local_files,
+#      ~ drive_upload(.x,
+#                     path = as_id(drive_fisc_dir), #path is to the ER21 test file folder
+#                     name = basename(.x),
+#                     type = "spreadsheet"))
+# 
+# #remove all local files
+# unlink(fisc_dir_name, recursive = TRUE)
