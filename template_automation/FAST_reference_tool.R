@@ -1,4 +1,7 @@
-## version 2.3: turn summary sheet generator into a function
+## version 2.4:
+## New Features in 2.4 include:
+##            * Control openxlsx version used to 4.2.3
+##              Latest version (4.2.4) does not preserve imported styling
 
 # LOCALS & SETUP ===============================================================
 ## IMPORTANT NOTE: set working directory to Source File for best results
@@ -6,6 +9,13 @@
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Libraries
+### If statement checks to see if openxlsx is installed and has the correct version
+packageurl <- "https://cran.r-project.org/src/contrib/Archive/openxlsx/openxlsx_4.2.3.tar.gz"
+if(!require(openxlsx)){install.packages('openxlsx')#packageurl, repos=NULL, type="source")
+} else if (packageVersion('openxlsx') != "4.2.3"){
+  detach("package:openxlsx", unload=TRUE)
+  install.packages(packageurl, repos=NULL, type="source")}
+
 library(openxlsx)
 library(glamr)
 library(gophr)
@@ -68,12 +78,12 @@ bold_txt <- createStyle(textDecoration = 'bold')
 border_cells <- createStyle(border = "TopBottomLeftRight", borderStyle = 'thin')
 thick_line <- createStyle(border = "left", borderStyle = "thick")
 dollar_cell <- createStyle(numFmt = "CURRENCY") 
-percent_cell <- createStyle(numFmt = "PERCENTAGE") 
-wrap_txt <- createStyle(wrapText = TRUE)
 
 
 # Functions ====================================================================
 ## Generate data.frame with cost category, for Work Plan Budget and Expenditure
+percent_cell <- createStyle(numFmt = "PERCENTAGE") 
+wrap_txt <- createStyle(wrapText = TRUE)
 ## Input: data.frame with only ONE unique mechanism_id
 concat_df <- function(df){
   # Concat columns
