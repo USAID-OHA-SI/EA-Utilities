@@ -1,0 +1,235 @@
+---
+title: "Data Quality Report for `r params$ou` FY`r params$fiscal_yr`" 
+author: "David Song"
+date: "11/6/2021"
+output: pdf_document
+header-includes: 
+  - \usepackage{longtable}
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{xcolor}
+  - \usepackage{multirow}
+
+params:
+  ou: "Angola"
+  fiscal_yr: 2020
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r r-setup, include=FALSE}
+library(kableExtra)
+library(glamr)
+library(gophr)
+library(glue)
+library(tidyverse)
+library(formattable)
+
+source('data_quality_source.R')
+
+########  Load Data #####################################
+df_fsd <- read_csv("temp/df_fsd.csv")
+df_msd <- read_csv("temp/df_msd.csv")
+
+fsd_ou <- df_fsd %>% filter(operatingunit == params$ou)
+
+msd_ou <- df_msd %>% filter(operatingunit == params$ou)
+
+df_budg_exp<- fsd_ou %>%
+  check_budg_exp() %>% 
+  ungroup()
+
+df_other <- #df_fsd %>%
+  fsd_ou %>%
+  percent_other_check() %>% 
+  ungroup()
+
+df_pm <- percent_pm_check(fsd_ou) %>%
+  ungroup()
+
+df_perc_exp<- exp_perc_budg_check(fsd_ou) %>%
+  ungroup()
+
+total_num_mechs <- length(unique(df_fsd$mech_code))
+uniq_budg_exp <- length(unique(df_budg_exp$mech_code))
+uniq_other <-length(unique(df_other$mech_code))
+uniq_pm <- length(unique(df_pm$mech_code))
+
+perc_exp_good <- na.omit(df_perc_exp[df_perc_exp$perc_exp >= 0.9 & df_perc_exp$perc_exp <=1.1, ])
+
+good_perc_exp <- length(unique(perc_exp_good$mech_code))
+```
+
+# Introduction
+
+There are 5 key data quality checks included in this report:
+\begin{itemize}
+  \item Budget vs. Expenditure exact matching
+  \item Percent of "Other: Other" categorized expenditures 
+  \item Program Management's percentage of total expenditure
+  \item Expenditure as percentage of budget
+  \item Cross data validation between MER indicators and expenditures
+\end{itemize}
+
+# Budget vs. Expenditure exact matching
+If Budgets exactly match expenditure, either disaggregated at the program area or aggregated up to the IM level, then this report will flag this as a potential issue.
+
+It is very rare for budgets to exactly match expenditure down to the cent.
+
+For `r params$ou`, `r uniq_budg_exp` mechanisms out of `r total_num_mechs` were flagged with an exact matching flag. 
+
+```{r, echo = FALSE}
+budg_exp_title<- glue("Budget vs. Expenditure FY{params$fiscal_yr}")
+col_names <- c("Mech code", "Mechanism Name", "Intervention",
+               "Total Planned Budget", "Total Expenditure")
+if (uniq_budg_exp !=0){
+  df_budg_exp %>%
+  select(-diff) %>%
+  mutate(sum_fast = currency(sum_fast)) %>%
+  mutate(sum_exp = currency(sum_exp)) %>%
+  mutate(intervention = cell_spec(intervention, 
+                                  bold=df_budg_exp$intervention == "TOTAL interventions")) %>%
+  mutate(sum_fast = cell_spec(sum_fast, 
+                                  bold=df_budg_exp$intervention == "TOTAL interventions")) %>%
+  mutate(sum_exp = cell_spec(sum_exp, 
+                                  bold=df_budg_exp$intervention == "TOTAL interventions")) %>%
+  kbl(format = "latex", caption = budg_exp_title, col.names = col_names, booktabs=T, escape=FALSE) %>%
+  kable_paper(latex_options= c("hold_position")) %>% 
+  column_spec(1, width = '3em') %>%
+  column_spec(2, width = '15em') %>%
+  column_spec(3, width = '7em') %>%
+  collapse_rows (columns = 1:2, valign="top")
+}
+
+```
+
+# Percent of "Other: Other" categorized expenditures
+Expenditures that do not fit any PEPFAR financial category are labelled as "Other: Other" in the Financial Structured Dataset (FSD). If a mechanism had more than 10% of its total expenditure for FY`r params$fiscal_yr` categorized as "Other: Other," they will be flagged in the table below.
+
+For `r params$ou`, `r uniq_other` mechanisms out of `r total_num_mechs` were flagged with having more than 10% of their expenditure categorized as "Other: Other. 
+
+```{r, echo=FALSE}
+col_other <- c("Operating Unit", "Mechanism code", "Mechanism Name",
+               "% of Expenditure")
+if (uniq_other != 0){
+  df_other %>%
+  select(-cost_category, -sub_cost_category) %>%
+  mutate(perc_exp = percent(perc_exp)) %>%
+  kbl(format = "latex", col.names = col_other, booktabs=T,
+      caption = 'Percent Expenditure as "Other: Other"') %>%
+  kable_paper(latex_options= c("hold_position", "scale_down")) %>% 
+  collapse_rows (columns = 1:2, valign="top")
+}
+
+
+```
+# Program Management's Percentage of Total Expenditure
+The below table shows what percentage of expenditure each mechanism in `r params$ou`spends on program management. 
+
+```{r, echo=FALSE}
+col_pm <- c("Mechanism Code", "Mechanism Name", "% of Expenditure")
+if (uniq_pm !=0){
+  df_pm %>%
+  select(-program) %>%
+  mutate(perc_exp = percent(perc_exp)) %>%
+  # must change col to characters, to change NaN into hyphen
+  mutate(perc_exp = as.character(perc_exp)) %>%
+  mutate(perc_exp = case_when(perc_exp == 'NaN'~'-',
+                              TRUE ~perc_exp)) %>%
+  kbl(format = "latex", col.names = col_pm, longtable=T, booktabs=T,
+      caption = "Percent of Program Management Expenditure") %>%
+  kable_paper(latex_options= c("hold_position", 'repeat_header')) %>%
+  column_spec(1, width = '5em') %>%
+  column_spec(2, width = '15em') %>%
+  collapse_rows(columns = 1:2, valign="top")
+}
+
+```
+# Expenditure as Percentage of Budget
+Below is a table showing how what percent of their budget each mechanism spent in FY`r params$fiscal_yr`. This is calculated as the expenditure's percentage of the planned budget. These calculations are done for both total expenditure vs. total budget, and expenditure vs. budget by program area.
+
+Mechanisms that spent between 90% and 110% of their allocated budget (for either total or by program area) are highlighted in green. This suggests these mechanisms were able to closely align their expenditures with their planned budgets.
+
+For `r params$ou`, `r good_perc_exp` mechanisms out of `r total_num_mechs` had either total expenditures or program area expenditures that were between 90% and 110% of their planned budgets.
+```{r, echo=FALSE}
+condition_func <- function(x){
+ if(is.na(x)){
+   return("white")
+ }else if(x >= 0.9 & x <=1.1){
+   return("lime")
+ } else {
+   return('white')
+ }
+}
+col_perc_exp <- c("Mechanism Code", "Mechanism Name", "Program Area",
+                  "Total Expenditure", "Total Budgeted", "% of Budget Spent")
+df_perc_exp %>%
+  mutate(sum_fast = currency(sum_fast)) %>%
+  mutate(sum_exp = currency(sum_exp)) %>%
+  mutate(perc_exp = percent(perc_exp)) %>%
+  mutate(perc_exp = as.character(perc_exp)) %>%
+  mutate(perc_exp = case_when(perc_exp == "NA"~'-',
+                              TRUE ~perc_exp)) %>%
+  kbl(format = "latex", col.names = col_perc_exp, longtable=T,
+      booktabs = T, escape=T, caption = "Expenditure as Percent of Budget") %>%
+  kable_paper(latex_options = c("hold_position", "repeat_header"),
+              font_size = 8)%>%
+  row_spec(which(df_perc_exp$program == "TOTAL"), bold = T) %>%
+  # https://tex.stackexchange.com/questions/98955/auto-resize-tabular-row-height
+  row_spec(0, extra_latex_after = "[0.7cm]") %>%
+  column_spec(1, width = '5em') %>%
+  column_spec(2, width = '15em') %>%
+  column_spec(3, width = '5em') %>%
+  column_spec(6, background = sapply(df_perc_exp$perc_exp, condition_func)) %>%
+  collapse_rows(columns = 1:2, valign="top")
+
+
+```
+# Cross data validation between MER indicators and expenditures
+This report compares the MER dataset with the financial dataset to cross-validate the data for inconsistencies. 
+For this particular flag, mechanisms are flagged if they reported MER indicator results but did not report any expenditure related to those MER indicators. 
+
+If a mechanism reports too few results, they will not be flagged for spending no expenditure despite having results.
+
+```{r, echo=FALSE}
+col_cdv <- c("Mechanism Code", "Mechanism Name", " Indicator",
+             "Results", "Total Expenditure")
+df_cdv <- 
+  pmap(list(msd_str_lst, msd_cond, fsd_filter_lst), 
+       ~cross_data_check(msd_ou, fsd_ou, msd_filter = ..1, 
+                         cond = ..2, fsd_filter = ..3)) %>%
+  bind_rows() %>%
+  group_by(indicator)
+
+len_cdv <- length(df_cdv$mech_code)
+
+if (len_cdv !=0){
+  df_cdv %>%
+  ungroup() %>%
+  mutate(sum_exp = currency(sum_exp)) %>%
+  kbl(format = "latex", col.names = col_cdv, longtable = T, 
+      booktabs = T, caption="Mechanisms Flagged for Reporting MER Results but not Related Expenditures") %>%
+  kable_paper(latex_options = c("hold_position", "repeat_header",
+                                "striped")) %>%
+  column_spec(1, width = '7em') %>%
+  column_spec(2, width = '15em') %>%
+  pack_rows(index = setNames(rle(df_cdv$indicator)[[1]],
+                             rle(df_cdv$indicator)[[2]]),
+            color = "white",
+            background = "gray" ) 
+  # %>%
+  # remove_column(columns = 3)
+} else{
+  data.frame(list("No Mechanisms were flagged")) %>% 
+    kbl(format = "latex", col.names = list("Note:"))%>%
+    kable_paper(latex_options = c("hold_position"))
+}
+
+
+
+```
