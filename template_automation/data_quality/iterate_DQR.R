@@ -2,6 +2,8 @@
 # Author: David Song
 # Date: 2021 Nov 8
 
+# NOTE: Upload to drive
+
 library(stringr)
 library(gophr)
 library(glamr)
@@ -11,12 +13,55 @@ library(googledrive)
 
 source('data_quality_source.R')
 
-## Global
+
+## Global ===============================================
 fiscal_yr <- 2020
 # path to Google Drive folder
 drive_path <- '1lopD-1ADm2tEiSRb7wY5bl1iStBEz129'
 
 
+## Functions =============================================
+# Helper Func: Check if file exists before uploading
+# Reason: Google API allows for duplicate file name uploads
+drive_upload_uniq <- function(path_name,
+                              existing_files,
+                              drive_dir){
+  file_name <- basename(path_name)
+  if(!(file_name %in% existing_files)){
+    drive_upload(path_name, path = as_id(drive_dir),
+                 name = file_name)
+  }
+}
+
+# Func: Upload directory to Google Drive
+upload_dir <- function(local_dir, drive_path){
+  # check if output directory already exists in drive, and if not,
+  # then makes it
+  if(!(local_dir %in% drive_ls(path = as_id(drive_path))$name)){
+    drive_mkdir(local_dir,
+                # path is to your desired Google drive directory
+                path = as_id(drive_path))
+  }
+  
+  # Get path for created directory
+  drive_ids <- drive_ls(path = as_id(drive_path))
+  drive_dir <- drive_ids$id[drive_ids$name == local_dir]
+  
+  lst_files <- list.files(path = local_dir)
+  lst_paths <- paste0(glue('{local_dir}/'), lst_files, sep='')
+  
+  existing_files <-drive_ls(path = as_id(drive_dir))$name
+  
+  # Upload pdfs to Drive
+  walk(lst_paths,
+       ~ drive_upload_uniq(.x,
+                           existing_files = existing_files,
+                           drive_dir = drive_dir))
+}
+
+
+
+### MAIN ====================================================
 # Build necessary directories if they are not present
 temp_dir <- "temp"
 output_dir <- "output"
@@ -65,13 +110,15 @@ write.csv(df_fsd, glue("{temp_dir}/df_fsd.csv"),  row.names = F)
 # Select OUs
 ou <- unique(df_fsd$operatingunit)
 
-# # Delete from memory
-# rm(df_msd)
-# rm(df_fsd)
-# gc()
+# Delete from memory
+rm(df_msd)
+rm(df_fsd)
+gc()
 
+######## REMOVE FOR THE REAL DEAL ########################
 # for test, just choose 5 ous
 ou <- ou[1:5]
+##########################################################
 
 reports <- tibble(
   filename = str_c("data_quality_", ou, ".pdf"),
@@ -92,46 +139,9 @@ unlink("./temp/df_msd.csv")
 unlink("./temp/df_fsd.csv")
 
 
-##### Upload to Google Drive ###################################################
-#load_secrets()
-
-# Helper Func: Check if file exists before uploading
-# Reason: Google API allows for duplicate file name uploads
-drive_upload_uniq <- function(path_name, 
-                              existing_files,
-                              drive_dir){
-  file_name <- basename(path_name)
-  if(!(file_name %in% existing_files)){
-    drive_upload(path_name, path = as_id(drive_dir),
-                 name = file_name)
-  }
-}
-
-# Func: Upload directory to Google Drive
-upload_dir <- function(local_dir, drive_path){
-  # check if output directory already exists in drive, and if not, 
-  # then makes it
-  if(!(local_dir %in% drive_ls(path = as_id(drive_path))$name)){
-    drive_mkdir(local_dir,
-                # path is to your desired Google drive directory
-                path = as_id(drive_path))
-  }
-  
-  # Get path for created directory
-  drive_ids <- drive_ls(path = as_id(drive_path))
-  drive_dir <- drive_ids$id[drive_ids$name == local_dir]
-  
-  lst_files <- list.files(path = local_dir)
-  lst_paths <- paste0(glue('{local_dir}/'), lst_files, sep='')
-  
-  existing_files <-drive_ls(path = as_id(drive_dir))$name
-  
-  # Upload pdfs to Drive
-  walk(lst_paths,
-       ~ drive_upload_uniq(.x,
-                           existing_files = existing_files,
-                           drive_dir = drive_dir))
-}
-
-upload_dir(output_dir, drive_path)
-
+# ##### Upload to Google Drive ##################################
+#### UNCOMMENT THIS WHEN YOU WANT TO UPLOAD #####################
+# #load_secrets()
+# 
+# upload_dir(output_dir, drive_path)
+# 

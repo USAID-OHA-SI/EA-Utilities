@@ -12,7 +12,7 @@ header-includes:
   - \usepackage{multirow}
 
 params:
-  ou: "Angola"
+  ou: "Tanzania"
   fiscal_yr: 2020
 ---
 
@@ -168,13 +168,15 @@ condition_func <- function(x){
 }
 col_perc_exp <- c("Mechanism Code", "Mechanism Name", "Program Area",
                   "Total Expenditure", "Total Budgeted", "% of Budget Spent")
-df_perc_exp %>%
+
+df_pe_hold <- df_perc_exp %>%
   mutate(sum_fast = currency(sum_fast)) %>%
   mutate(sum_exp = currency(sum_exp)) %>%
   mutate(perc_exp = percent(perc_exp)) %>%
-  mutate(perc_exp = as.character(perc_exp)) %>%
-  mutate(perc_exp = case_when(perc_exp == "NA"~'-',
-                              TRUE ~perc_exp)) %>%
+  mutate(perc_exp = as.character(perc_exp))
+df_pe_hold$perc_exp[is.na(df_pe_hold$perc_exp)] <- '-'
+
+df_pe_hold %>%
   kbl(format = "latex", col.names = col_perc_exp, longtable=T,
       booktabs = T, escape=T, caption = "Expenditure as Percent of Budget") %>%
   kable_paper(latex_options = c("hold_position", "repeat_header"),
@@ -215,13 +217,15 @@ if (len_cdv !=0){
   kbl(format = "latex", col.names = col_cdv, longtable = T, 
       booktabs = T, caption="Mechanisms Flagged for Reporting MER Results but not Related Expenditures") %>%
   kable_paper(latex_options = c("hold_position", "repeat_header",
-                                "striped")) %>%
+                                "bordered")) %>%
   column_spec(1, width = '7em') %>%
   column_spec(2, width = '15em') %>%
   pack_rows(index = setNames(rle(df_cdv$indicator)[[1]],
                              rle(df_cdv$indicator)[[2]]),
             color = "white",
-            background = "gray" ) 
+            background = "gray" ) %>%
+  collapse_rows (columns = 1:2, valign="top")
+
   # %>%
   # remove_column(columns = 3)
 } else{
