@@ -5,6 +5,10 @@
 #     * local_dir: name of local directory you want to upload (type: string)
 #     * drive_path: name of google drive folder (destination) (type: string)
 #
+# NOTE: This function will ignore sub-folders in your target local directory
+#       and will only upload files. I will work on improving this so it can 
+#       recursively upload sub-folders too. 
+#
 # Author: David Song
 # Date: 2021 Nov 9
 
@@ -46,7 +50,9 @@ upload_dir_to_gdrive <- function(local_dir, drive_path){
   drive_ids <- drive_ls(path = as_id(drive_path))
   drive_dir <- drive_ids$id[drive_ids$name == local_dir]
   
-  lst_files <- list.files(path = local_dir)
+  # Exclude directories and only include files
+  lst_files <- setdiff(list.files(path = local_dir), 
+                       list.dirs(path=local_dir, recursive=F,full.names=F))
   lst_paths <- paste0(glue('{local_dir}/'), lst_files, sep='')
   
   existing_files <-drive_ls(path = as_id(drive_dir))$name
@@ -57,3 +63,5 @@ upload_dir_to_gdrive <- function(local_dir, drive_path){
                            existing_files = existing_files,
                            drive_dir = drive_dir))
 }
+
+
