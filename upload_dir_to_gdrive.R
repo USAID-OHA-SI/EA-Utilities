@@ -40,15 +40,16 @@ upload_dir_to_gdrive <- function(local_dir, drive_path){
   
   # check if output directory already exists in drive, and if not,
   # then makes it
-  if(!(local_dir %in% drive_ls(path = as_id(drive_path))$name)){
-    drive_mkdir(local_dir,
+  local_dir_basename <- basename(local_dir)
+  if(!(local_dir_basename %in% drive_ls(path = as_id(drive_path))$name)){
+    drive_mkdir(local_dir_basename,
                 # path is to your desired Google drive directory
                 path = as_id(drive_path))
   }
   
   # Get path for created directory
   drive_ids <- drive_ls(path = as_id(drive_path))
-  drive_dir <- drive_ids$id[drive_ids$name == local_dir]
+  drive_dir <- drive_ids$id[drive_ids$name == local_dir_basename]
   
   # Exclude directories and only include files
   lst_files <- setdiff(list.files(path = local_dir), 
@@ -63,5 +64,3 @@ upload_dir_to_gdrive <- function(local_dir, drive_path){
                            existing_files = existing_files,
                            drive_dir = drive_dir))
 }
-
-
