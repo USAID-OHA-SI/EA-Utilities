@@ -22,10 +22,14 @@ drive_upload_uniq <- function(path_name,
                               existing_files,
                               drive_dir){
   file_name <- basename(path_name)
-  if(!(file_name %in% existing_files)){
-    drive_upload(path_name, path = as_id(drive_dir),
-                 name = file_name)
-  }
+  
+  if((file_name %in% existing_files)){
+    drive_rm(file_name)
+    warning(glue("{file_name} already exists in the Google Drive and was overwritten."))
+  } 
+  
+  drive_upload(path_name, path = as_id(drive_dir),
+               name = file_name)
 }
 
 # Func: Upload directory to Google Drive
