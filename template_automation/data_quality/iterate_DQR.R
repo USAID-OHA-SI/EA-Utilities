@@ -129,7 +129,7 @@ reports %>%
   select(output_file = filename, params) %>%
   # https://stackoverflow.com/questions/56606299/in-rstudio-knit-always-works-but-rmarkdownrender-fails-on-second-run-bu
   pwalk(rmarkdown::render, 
-        input = "data_quality_report_template_v3-1.Rmd", 
+        input = "data_quality_report_template.Rmd", 
         output_dir = glue("{output_dir}/"))
 
 # This command will only work if within RStudio
@@ -139,9 +139,9 @@ unlink("./temp/df_msd.csv")
 unlink("./temp/df_fsd.csv")
 
 
-# ##### Upload to Google Drive ##################################
-#### UNCOMMENT THIS WHEN YOU WANT TO UPLOAD #####################
-# #load_secrets()
-# 
-# upload_dir(output_dir, drive_path)
-# 
+##### Upload to Google Drive ##################################
+### UNCOMMENT THIS WHEN YOU WANT TO UPLOAD #####################
+load_secrets()
+
+upload_dir(output_dir, drive_path)
+
