@@ -1,4 +1,5 @@
 ##### Upload to Google Drive ################################################
+# Version 3.0
 # Instructions: use the function "upload_dir_to_gdrive()" to upload
 #               Do NOT use the helper function "drive_upload_uniq"
 # Inputs:
@@ -11,6 +12,10 @@
 #
 # Author: David Song
 # Date: 2021 Nov 9
+# 
+# Version 3.0: Fixes "drive_rm" behavior to only remove file with correct 
+#              google drive id, rather than deleting a file with the same name
+#              but anywhere in the user's Google Drive
 
 library(glue)
 library(tidyverse)
@@ -23,8 +28,11 @@ drive_upload_uniq <- function(path_name,
                               drive_dir){
   file_name <- basename(path_name)
   
-  if((file_name %in% existing_files)){
-    drive_rm(file_name)
+  if((file_name %in% existing_files$name)){
+    print(glue("checking {file_name}......."))
+    # Finds Google Drive file ID based on name
+    file_id <- existing_files[existing_files$name == file_name,]
+    drive_rm(as_id(file_id))
     warning(glue("{file_name} already exists in the Google Drive and was overwritten."))
   } 
   
@@ -60,7 +68,7 @@ upload_dir_to_gdrive <- function(local_dir, drive_path){
                        list.dirs(path=local_dir, recursive=F,full.names=F))
   lst_paths <- paste0(glue('{local_dir}/'), lst_files, sep='')
   
-  existing_files <-drive_ls(path = as_id(drive_dir))$name
+  existing_files <-drive_ls(path = as_id(drive_dir))
   
   # Upload pdfs to Drive
   walk(lst_paths,
