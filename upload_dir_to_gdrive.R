@@ -13,9 +13,9 @@
 # Author: David Song
 # Date: 2021 Nov 9
 # 
-# Version 3.0: Fixes "drive_rm" behavior to only remove file with correct 
-#              google drive id, rather than deleting a file with the same name
-#              but anywhere in the user's Google Drive
+# Version 4.0: Use built-in Google Drive function for overwrite 
+#              But since overwite cannot handle single quotes, strip quote from
+#              file names
 
 library(glue)
 library(tidyverse)
@@ -24,20 +24,11 @@ library(googledrive)
 # Helper Func: Check if file exists before uploading
 # Reason: Google API allows for duplicate file name uploads
 drive_upload_uniq <- function(path_name,
-                              existing_files,
                               drive_dir){
-  file_name <- basename(path_name)
-  
-  if((file_name %in% existing_files$name)){
-    print(glue("checking {file_name}......."))
-    # Finds Google Drive file ID based on name
-    file_id <- existing_files[existing_files$name == file_name,]
-    drive_rm(as_id(file_id))
-    warning(glue("{file_name} already exists in the Google Drive and was overwritten."))
-  } 
-  
+  file_name <- str_replace(basename(path_name), "'", " ")
+  print(file_name)
   drive_upload(path_name, path = as_id(drive_dir),
-               name = file_name)
+               name = file_name, overwrite=T)
 }
 
 # Func: Upload directory to Google Drive
@@ -62,17 +53,18 @@ upload_dir_to_gdrive <- function(local_dir, drive_path){
   # Get path for created directory
   drive_ids <- drive_ls(path = as_id(drive_path))
   drive_dir <- drive_ids$id[drive_ids$name == local_dir_basename]
-  
+
   # Exclude directories and only include files
   lst_files <- setdiff(list.files(path = local_dir), 
                        list.dirs(path=local_dir, recursive=F,full.names=F))
-  lst_paths <- paste0(glue('{local_dir}/'), lst_files, sep='')
+  lst_paths <- paste0(glue("{local_dir}/"), lst_files, sep="")
   
   existing_files <-drive_ls(path = as_id(drive_dir))
   
+  print(lst_paths)
   # Upload pdfs to Drive
   walk(lst_paths,
-       ~ drive_upload_uniq(.x,
-                           existing_files = existing_files,
-                           drive_dir = drive_dir))
+       ~ drive_upload_uniq(.x, drive_dir = drive_dir))
+       
+       # (.x, path = drive_dir, name = basename(.x), overwrite=T))
 }
