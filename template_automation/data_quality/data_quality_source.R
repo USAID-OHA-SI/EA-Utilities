@@ -1,6 +1,8 @@
 ## Source code for functions
-## version 2.0
-## Based on data_quality_tables_v4-0_kable
+## version 2.3
+## Based on data_quality_tables_v5-0_hrh
+## Added HRH check
+## Added code in "abridge" function to remove illegal characters
 
 ######## Global Variables
 # Columns needed for analysis
@@ -15,31 +17,30 @@ msd_cols = c("operatingunit", "primepartner", "mech_code", "mech_name",
              "indicator", 'cumulative')
 
 ######## Functions #############################################################
+# Abridge a string so that it fits in Excel's sheet name
+abridge <- function(strng, max_len=90){
+  # https://stackoverflow.com/questions/9934856/removing-non-ascii-characters-from-data-files
+  strng <- gsub('[^\x20-\x7E]', "", strng)
+  len_str <- nchar(strng)
+  
+  if (len_str > max_len){
+    start <- substr(strng, 1, (max_len-9))
+    end <- substr(strng, len_str-6, len_str)
+    return(glue("{start}...{end}"))
+  } else {
+    return(strng)
+  }
+}
+
+
 # Checks if budget == exp exactly and flags as error if so, print in df
-### NOTE: do NOT use summary_rows func in GT to render this; summary rows are
-###       already included, labelled " TOTAL intervention" under "intervention".
-###       Use conditional formatting to format these TOTAL rows
 check_budg_exp <- function(df){
   df_sum_interven <- df %>% 
     group_by(mech_code, mech_name, intervention) %>%
     summarize(sum_fast = sum(cop_budget_total, na.rm=T),
               sum_exp = sum(expenditure_amt, na.rm = T)) %>%
-    mutate(diff = sum_exp - sum_fast)
-  
-  df_sum_mech <- df %>% 
-    group_by(mech_code, mech_name) %>%
-    summarize(sum_fast = sum(cop_budget_total, na.rm=T),
-              sum_exp = sum(expenditure_amt, na.rm = T)) %>%
-    mutate(diff = sum_exp - sum_fast)
-  
-  exp_budget_mech_check <- df_sum_mech %>%
-    filter(diff == 0 ) %>%
-    mutate(intervention = " TOTAL interventions")
-  
-  exp_budget_interv_check <- df_sum_interven %>%
-    filter(diff == 0)
-  
-  results_exp_budget <- rbind(exp_budget_interv_check, exp_budget_mech_check) %>%
+    mutate(diff = sum_exp - sum_fast) %>%
+    filter(diff == 0) %>%
     arrange(mech_code, intervention)
 }
 
@@ -120,6 +121,26 @@ cross_data_check <- function(msd, fsd, msd_filter_str,
     select(-sum_exp)
   
   return(cross_data_fail)
+}
+
+hrh_check <- function(fsd, hrh){
+  sum_exp <- fsd %>%
+    group_by(mech_code, mech_name) %>%
+    summarize(sum_exp = sum(expenditure_amt, na.rm = T))
+  
+  sum_hrh <- hrh %>% 
+    group_by(mech_code, mech_name) %>%
+    summarize(sum_fte = sum(annual_fte, na.rm = T))
+  
+  # We only do left join because we are asking: "If expenditures exist, do HRH data exist?"
+  hrh_exp <- merge(x=sum_exp, y = sum_hrh , by=c("mech_code", "mech_name"),
+                   all.x = TRUE)
+  
+  hrh_fail <- hrh_exp[is.na(hrh_exp$sum_fte) | (hrh_exp$sum_fte ==0),] %>%
+    filter(sum_exp != 0) %>%
+    select(-sum_fte)
+  
+  return(hrh_fail)
 }
 
 ########  Set filter functions##################################################
