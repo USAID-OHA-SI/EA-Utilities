@@ -57,7 +57,7 @@ max_substr_len <- 30
 # Row start for Summary dataframe on summary tab
 sumRowStart <- 5
 
-fast_ref_template <- "fast_reference_template_v3.xlsx"
+fast_ref_template <- "fast_reference_template.xlsx"
 summary_sheet_num <- 2
 ref_sheet_num <- summary_sheet_num + 1
 

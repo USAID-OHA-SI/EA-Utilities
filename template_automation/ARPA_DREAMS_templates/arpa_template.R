@@ -1,7 +1,10 @@
-## Version 2.0: 
+## Version 3.0: 
 ## Changes:
+##        * Sort into directories by OU, not one big folder
+## Version 2.1 Changes:
 ##        * Use new ARPA category columns
 ##        * Reads in style through xlsx template rather than hard coding
+##              - version 2.1 uses ARPA_ER_template_v2.xlsx
 ##        * Must use openxlsx version 4.2.3--latest version does not import 
 ##          workbook formatting correctly (as of 4.2.4), see below URL
 ##          https://github.com/ycphs/openxlsx/issues/207
@@ -10,7 +13,7 @@
 
 ## IMPORTANT NOTE: set working directory to Source File for best results
 # Below code sets working directory to source file.
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+setwd(dirname(rstudioapi::getActiveDocumentContWext()$path))
 
 # Libraries
 library(installr)
@@ -30,22 +33,31 @@ library(openxlsx)
 library(glamr)
 library(gophr)
 library(googledrive)
-library(googlesheets4)
 library(glue)
-library(janitor)
 library(tidyverse)
-library(fs) #to create folders
+library(fs)
+
+# Use google drive uploader function
+home_dir <- "C:/Users/davidsong/Desktop/USAID"
+uploader_path <- "/GitHub/EA-Utilities/upload_dir_to_gdrive.R"
+source(glue("{home_dir}{uploader_path}"))
 
 # Global Variables======================================================================
 
 # Drive path is to Partner_data_output folder. Change path name to select correct upload path
-glbl_id <- '1mCR6yqGiaKxXPpl2QHsYR08B-5oaLsgE'
+glbl_id <- '1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR'
 
 # Directory name (used both on local system and in Google Drive, see "Generate File" section of code)
-fisc_dir = "ARPA_templates/"
+fisc_dir <- "ARPA_templates"
+
+# Path where ARPA template is stored
+templatePath <- "ARPA_ER_template_v2.xlsx"
+
+# Path to google drive directory
+gdrive_path <- "1alqyjq1IjEXlF6ZydLHe5pp0ZDzcbDGa"
 
 # Select the fiscal year to use for the Quarterly Template
-curr_year = 2022
+curr_year = 2021
 
 
 # Functions ============================================================================
@@ -85,70 +97,97 @@ wb_pipeline <- function(mech, dr = "", df = df_fsd){
   df_mech <- filter_one_mech(mech)
   df_arpa <- gen_df_arpa(df_mech)
   df_arpa <- df_arpa %>%
-    add_column(prev_ipc = NA,
-               prev_vax = NA,
-               prev_test = NA,
-               prev_clinical = NA,
-               prev_other = NA, 
+    add_column(ipc_cse = NA,
+               ipc_hrh = NA,
+               ipc_other = NA,
+               vax_cse = NA,
+               vax_hrh = NA,
+               vax_other = NA,
+               test_cse = NA,
+               test_hrh = NA,
+               test_other = NA,
+               clinical_cse = NA,
+               clinical_hrh = NA,
+               clinical_other = NA,
+               other_cse = NA,
+               other_hrh = NA,
+               other_other = NA,
                mitig_repair = NA,
                mitig_logistics = NA,
                mitig_lab = NA,
-               mitig_other = NA)
+               mitig_other = NA,
+               activity_description = NA)
   
   # Save country/OU name, prime name, and mechanism name/ID
   # NOTE: if column order changes, this code will break
   mech_id <- df_mech[1,c(1:5,14)]
   
   # For now, just store template in same folder as R code
-  templatePath <- "ARPA_ER_template_v1.xlsx"
   wb <- loadWorkbook(templatePath)
 
   writeData(wb, sheet = 1, x = mech_id, startRow = 4, colNames = FALSE, withFilter = FALSE)
   writeDataTable(wb, sheet = 2, x = df_arpa, startRow = 2)#, colNames = FALSE)
   
-  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_ER_template_TEST.xlsx")
-  saveWorkbook(wb, file_name, overwrite = TRUE)
+  # Set cell styles
+  template_style <- createStyle(fgFill = "#dcdcdc")
+  df_all_cell_style <- createStyle(border = "TopBottomLeftRight", borderStyle = 'thin')
   
+  addStyle(wb, sheet = 2, template_style, rows = 3:200, cols = 1:4,
+           gridExpand = TRUE, stack = TRUE)
+  addStyle(wb, sheet = 2, df_all_cell_style, rows = 3:200, cols = 1:24, 
+           gridExpand = TRUE, stack = T)
+  
+  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_ER_template.xlsx")
+  saveWorkbook(wb, file_name, overwrite = TRUE)
   return(df_arpa)
 }
 
 # Progress tracker is a wrapper around the wb_pipeline function to track
 # progress on the building of files
-progress_tracker <- function(global_progress, mech_id, dr){
+progress_tracker <- function(track_num, global_progress = global_progress,
+                             total_files = total_files, func, ...){
   if (global_progress == 1){
     cat("Starting building files\n")
   }
   
-  if (global_progress %% 50 == 0){
+  if (global_progress %% track_num == 0){
     cat("Building", global_progress, "out of", total_files, "files\n", sep = " ")
   }
   
   ### Can change function used here. Better to have chosen function be an
   ### argument of the Progress Tracker function, but that is annoying to code right now
-  wb_pipeline(mech_id, dr)
+  output <- func(...)
   
   global_progress <<- global_progress + 1
   
   if (global_progress == total_files){
-    cat("Finished building all xlsx files.\n")
+    cat("Finished building all files.\n")
     global_progress <<- 1
   }
+  return(output)
 }
+
 
 
 # Output folder ========================================================================
 
 # LOAD DATA ============================================================================  
-# Run glamr function "si_paths" to generate local paths based on organization's
-# common folder structure for data stored locally.
-# Then call latest file, read in data.frame and filter to select only USAID entries
-df_fsd <-si_path()%>%
+df_lst_arpa <- read.xlsx("PEPFAR ARPA Budgets by USAID Mechanism.xlsx", startRow=3)
+
+df_fsd_full <-glamr::si_path()%>%
   return_latest("Fin")%>% 
-  gophr::read_msd()%>% 
+  gophr::read_msd()
+
+df_fsd <- df_fsd_full %>%
   filter(fundingagency == "USAID",
-         fiscal_year == curr_year
+         fiscal_year == curr_year,
+         mech_code %in% df_lst_arpa$Mechanism.ID
          ) %>%
   remove_mo()
+
+rm(df_fsd_full)
+gc()
+
 
 # MUNG ===============================================================================
 
@@ -172,74 +211,48 @@ df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program
 # Test one mechanism on function pipeline
 test_mech <- "70212"
 
-test_df <- filter_one_mech(test_mech)
-test_df_with_cost <- gen_df_arpa(test_df)
+test_df <- df_fsd %>% filter(mech_code == test_mech)
+# test_df_with_cost <- gen_df_arpa(test_df)
 
 test_output <- wb_pipeline(test_mech)
 
 
-
 # Generate Files=========================================================================
 
-# List of mechanisms
-lst_mech <-
-  df_fsd %>%
-  distinct(mech_code) %>%
-  pull()
-
-
-####### THIS SHORTENS LIST FOR TEST RUN #######
-lst_mech <- lst_mech[1:6]
-
-# removes backlash for creation of actual directory
-fisc_dir_name = substr(fisc_dir, 1, nchar(fisc_dir)-1)
-#create output folders folders locally
-dir_create(fisc_dir_name)
-
-# Generate list from 1 to length of list
-lst_positions <- seq(1, length(lst_mech))
-# Global Progress Tracking variables
-global_progress <- 1
+# Get total # of files to process (i.e. # of unique mechs)
+lst_mech <- df_fsd %>% distinct(mech_code) %>% pull()
 total_files <- length(lst_mech)
 
-# Create output budget files
-walk(lst_mech,
-      function(x, y) progress_tracker(global_progress = global_progress,
-                                      mech_id = x,
-                                      dr = fisc_dir
-                                      ))
+# Get list of unique OUs 
+lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
 
-# Length of # of unique mechs matches the number of files created in ER directory
-total_files == length(list.files(fisc_dir))
+# ####### THIS SHORTENS LIST FOR TEST RUN #######
+# lst_ou <- lst_ou[1:2]
 
+#create output folders folders locally
+dir_create(fisc_dir)
 
+# Global Progress Tracking variables
+global_progress <- 1
+
+for (ou in lst_ou){
+  ou_dir <- glue("{fisc_dir}/{ou}/")
+  dir_create(ou_dir)
+  df_ou <- df_fsd %>% filter(operatingunit == ou)
+  ou_lst_mech <- df_ou %>% distinct(mech_code) %>% pull()
+  # Create output budget files
+  walk(ou_lst_mech,
+       function(x) progress_tracker(track_num = 50,global_progress = global_progress,
+                                    total_files = total_files,
+                                    func = wb_pipeline,
+                                    mech = x,dr = ou_dir)
+       )
+}
 
 # UPLOAD==============================================================================
-load_secrets()
+# load_secrets()
 
-drive_ids <- drive_ls(path = as_id(glbl_id))
-# Check if folder with same name exists, then create folder for upload
-if (!(fisc_dir_name %in% drive_ids$name)){
-  drive_mkdir(fisc_dir_name,
-              path = as_id(glbl_id))
-  # update drive_ids with new directory
-  drive_ids <- drive_ls(path = as_id(glbl_id))
+for (dir in list.dirs(fisc_dir)[-1]){
+  upload_dir_to_gdrive(dir, gdrive_path)
 }
-# Get path for new directory in Drive
 
-drive_fisc_dir <- drive_ids$id[drive_ids$name == fisc_dir_name]
-
-#identify list of files stored locally to move to Drive
-local_files <- list.files(fisc_dir_name, full.names = TRUE)
-
-#push to drive
-### NOTE: For future versions, build collision detection function, since Drive
-###       does not overwrite files with the same name
-walk(local_files,
-     ~ drive_upload(.x,
-                    path = as_id(drive_fisc_dir), #path is to the ER21 test file folder
-                    name = basename(.x)))
-                    #type = "spreadsheet"))
-
-# #remove all local files
-# unlink(fisc_dir_name, recursive = TRUE)
