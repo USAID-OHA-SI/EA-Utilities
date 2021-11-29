@@ -1,5 +1,5 @@
 ##### Upload to Google Drive ################################################
-# Version 3.0
+# Version 4.1
 # Instructions: use the function "upload_dir_to_gdrive()" to upload
 #               Do NOT use the helper function "drive_upload_uniq"
 # Inputs:
@@ -13,7 +13,9 @@
 # Author: David Song
 # Date: 2021 Nov 9
 # 
-# Version 4.0: Use built-in Google Drive function for overwrite 
+# Version 4.1: Adjust path inputs to better work in for loops
+#
+#              Use built-in Google Drive function for overwrite 
 #              But since overwite cannot handle single quotes, strip quote from
 #              file names
 
@@ -50,21 +52,40 @@ upload_dir_to_gdrive <- function(local_dir, drive_path){
                 path = as_id(drive_path))
   }
   
-  # Get path for created directory
-  drive_ids <- drive_ls(path = as_id(drive_path))
-  drive_dir <- drive_ids$id[drive_ids$name == local_dir_basename]
+  len_id <- 0  
+
+  while (len_id == 0) {
+    # Get path for created directory
+    drive_ids <- drive_ls(path = as_id(drive_path))
+    drive_dir <- drive_ids$id[drive_ids$name == local_dir_basename]
+    print(drive_dir)
+    len_id <- length(drive_dir)
+    if (len_id == 0){
+      # Assuming CPU usage is low enough, sleep will slow down code so that 
+      # Google Drive has enough time to make the directory
+      print("Waiting for Google Drive...")
+      Sys.sleep(4)
+    }
+  }
+  
 
   # Exclude directories and only include files
   lst_files <- setdiff(list.files(path = local_dir), 
                        list.dirs(path=local_dir, recursive=F,full.names=F))
   lst_paths <- paste0(glue("{local_dir}/"), lst_files, sep="")
   
-  existing_files <-drive_ls(path = as_id(drive_dir))
+  existing_files <-drive_ls(path = drive_dir)
   
-  print(lst_paths)
   # Upload pdfs to Drive
   walk(lst_paths,
        ~ drive_upload_uniq(.x, drive_dir = drive_dir))
        
        # (.x, path = drive_dir, name = basename(.x), overwrite=T))
 }
+
+df_ou$mech_code[df_ou$operatingunit== "zoom"]
+
+drive_ids2 <-drive_ls(path = as_id(gdrive_path))
+drive_dr <- drive_ids2$id[drive_ids2$name == 'fake']
+length(drive_dr)
+
