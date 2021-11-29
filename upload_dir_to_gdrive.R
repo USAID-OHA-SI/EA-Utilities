@@ -83,9 +83,3 @@ upload_dir_to_gdrive <- function(local_dir, drive_path){
        # (.x, path = drive_dir, name = basename(.x), overwrite=T))
 }
 
-df_ou$mech_code[df_ou$operatingunit== "zoom"]
-
-drive_ids2 <-drive_ls(path = as_id(gdrive_path))
-drive_dr <- drive_ids2$id[drive_ids2$name == 'fake']
-length(drive_dr)
-
