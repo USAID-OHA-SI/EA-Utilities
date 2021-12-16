@@ -1,0 +1,70 @@
+FAST_Intervention<-function(df){
+  #nested read_csv. Can be removed and run separately
+  df<-read_xlsx(df, "Standard COP Matrix-R", skip=3)
+  
+  # Drop columns you don't need and rename  
+  df<- df %>% dplyr::select( -c('Global','Prime Partner DUNS','Award Number',
+                                'Appropriation Year', 'Initiative',
+                                'Funding Category','GAP':'ESF', 
+                                'Water':'AB/Y Denominator'))%>%
+    dplyr::rename("Prime Partner Name" = `Partner Name`,
+                  "Is Indigenous Prime Partner" = `Is Indigenous Partner?`,
+                  "Prime Partner Type" = `Partner Org Type`,
+                  "Fiscal Year" = `Implementation Year`,
+                  "Program Area" = `Major Program`,
+                  "Sub Program Area" = `Sub Program`,
+                  "Interaction Type" = `SD/NSD`,
+                  "Beneficiary" = `Major Beneficiary`,
+                  "Sub Beneficiary" = `Minor Beneficiary`,
+                  "COP Budget New Funding" = `Total New Funding Sources`,
+                  "COP Budget Pipeline" = `Applied Pipeline Amount`) %>% 
+    
+    dplyr::mutate(`Data Stream`="FSD")   
+  
+  #Convert columns into characters
+  df<-df%>%
+    dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`)) %>% 
+    dplyr::mutate(`Mechanism Name`=as.character(`Mechanism Name`)) %>% 
+    dplyr::mutate(`Operating Unit`= as.character(`Operating Unit`)) %>% 
+    dplyr::mutate(`Prime Partner Name`=as.character(`Prime Partner Name`)) %>% 
+    dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`)) %>% 
+    dplyr::mutate(`Planning Cycle`=as.character(`Planning Cycle`)) %>% 
+    dplyr::mutate(`Interaction Type`=as.character(`Interaction Type`)) %>% 
+    dplyr::mutate(`Record Type`=as.character(`Record Type`)) %>% 
+    dplyr::mutate(`Program Area`=as.character(`Program Area`)) %>% 
+    dplyr::mutate(`Sub Program Area`=as.character(`Sub Program Area`)) %>% 
+    dplyr::mutate(`Beneficiary`=as.character(`Beneficiary`)) %>% 
+    dplyr::mutate(`Sub Beneficiary`=as.character(`Sub Beneficiary`)) %>% 
+    dplyr::mutate(`Funding Agency`=as.character(`Funding Agency`)) %>% 
+    dplyr::mutate(`Is Indigenous Prime Partner`= as.character(`Is Indigenous Prime Partner`)) %>% 
+    dplyr::mutate(`Digital Health Investments`=as.character(`Digital Health Investments`)) %>% 
+    dplyr::mutate(`Prime Partner Type`= as.character(`Prime Partner Type`))
+  
+  #convert budget columns to numeric
+  df<-df%>%
+    dplyr::mutate(`COP Budget New Funding`=as.numeric(`COP Budget New Funding`))%>%
+    dplyr::mutate(`COP Budget Pipeline`=as.numeric(`COP Budget Pipeline`))%>%
+    dplyr::mutate(`Total Planned Funding`=as.numeric(`Total Planned Funding`)) %>% 
+    
+    #remove N/A's
+    #Drop all rows without an OU specified 
+    drop_na('Operating Unit')
+  
+  
+  #replace NAs with 0s
+  df<-df%>%
+    mutate_at(vars(`COP Budget New Funding`:`Total Planned Funding`),~replace_na(.,0))
+  
+  #Add in agency category column to group agencies
+  df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+    mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                      ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                             ifelse(`Agency Category` =="Dedup", "Dedup","Other")))) %>% 
+    dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
+  
+  #recode values to match naming in Financial Integrated Dataset
+  df<- df %>%  dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery")) %>%
+    dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "NSD"= "Non Service Delivery"))
+  
+  return(df)
+}
