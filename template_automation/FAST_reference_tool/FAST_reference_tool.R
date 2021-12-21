@@ -1,9 +1,9 @@
-## version 3-2-3:
-## New Features in 3-2-3 include:
-##            * Change order of COP Budget and Workplan Budget
-##               - to revert back, change Lines 65, 66, and 146
-##            * Control openxlsx version used to 4.2.3
-##              Latest version (4.2.4) does not preserve imported styling
+## version 4-0:
+## New Features in 4-0 include:
+##            * 
+##              
+##            * 
+##              
 
 # LOCALS & SETUP ===============================================================
 ## IMPORTANT NOTE: set working directory to Source File for best results
@@ -44,14 +44,12 @@ id_cols <-c('fundingagency', 'mech_name', 'primepartner', 'mech_code',
             'program_sub_program', 'beneficiary_sub_beneficiary')
 data_cols <- c('expenditure_amt', 'workplan_budget_amt','cop_budget_total',
                'fiscal_year')    
-lst_er <- c("expenditure_amt", "workplan_budget_amt", "cop_budget_total")
 
 # row names for program area breakdowns
 pa_rows <- data.frame(c("C&T", "HTS", "PREV", "SE", 'ASP', 'PM', 'TOTAL'))
-paStartRow <- 4
 paStartCol <- 14
 num_paRows <- count(pa_rows)[[1]]
-dataRowStart <- 4
+dataRowStart <- 6
 # max substring length for sheet name
 max_substr_len <- 30 
 # Row start for Summary dataframe on summary tab
@@ -67,12 +65,13 @@ default_budget_option <- "Workplan Budget"
 # column names
 col_lst_names <- c("Funding Agency", "Mechanism Name", "Partner Name", "Mechanism ID",
                    "Program Area", "Beneficiary", 
-                   glue("COP{(curr_fiscal_year - 3)} Expenditures"),
-                   glue("COP{(curr_fiscal_year - 1)} Budget"),
-                   glue("COP{(curr_fiscal_year - 2)} Workplan Budget"),
+              ## We subtract 2000 to get the base year number
+                   glue("COP{(curr_fiscal_year - 2 -2000)} Expenditures"),
+                   glue("COP{(curr_fiscal_year - 1 -2000)} FAST Budget"),
+                   glue("COP{(curr_fiscal_year - 1 -2000)} Workplan Budget"),
                    "Incremental Budget Change (%)",
                    "Incremental Budget Change ($)",
-                   glue("COP{curr_fiscal_year} Intervention Budget Total"))
+                   glue("COP{curr_fiscal_year -2000} Intervention Budget Total"))
 col_len_names <- length(col_lst_names)
 matrix_col_names <- matrix(col_lst_names, 1, col_len_names)
 
@@ -84,7 +83,12 @@ grey_cells <- createStyle(fontColour = "#FFFFFF", fgFill = '#808080')
 bold_txt <- createStyle(textDecoration = 'bold')
 border_cells <- createStyle(border = "TopBottomLeftRight", borderStyle = 'thin')
 thick_line <- createStyle(border = "left", borderStyle = "thick")
-dollar_cell <- createStyle(numFmt = "CURRENCY") 
+
+############## SEE IF THIS WORKS ##########################################
+dollar_cell <- createStyle(numFmt = '_($* #,##0_);_($* (#,##0);_($* "-"??_);_(@_)') 
+mech_num_cell <- createStyle(numFmt = '_*0')
+
+
 percent_cell <- createStyle(numFmt = "PERCENTAGE") 
 wrap_txt <- createStyle(wrapText = TRUE)
 light_grey <- createStyle(fgFill = '#F2F2F2')
@@ -116,29 +120,22 @@ gen_df <- function(OU, df = df_fsd){
 }
 
 # Function to isolate correct budget column for the correct fiscal year
-isolate_col <- function(col_name, fisc_yr, df){
-  filter(df, df$fiscal_year == curr_fiscal_year - fisc_yr) %>%
+isolate_col <- function(col_name, fisc_yr_distance, df){
+  filter(df, df$fiscal_year == curr_fiscal_year - fisc_yr_distance) %>%
     select(c(all_of(id_cols), all_of(col_name)))
 }
 
 # Creates merged dataframe with expenditure, workplan, and COP budget data
 gen_merged <- function(df){
-  # Initialize empty dataframe to start merge
-  df_merged <- df[0,id_cols]
-  for (i in 1:length(lst_er)){
-    df_merged <- 
-      # Note: We use 3 since 3 - index_position equals the X years ago's data to use
-      isolate_col(lst_er[[i]], 3 - i, df) %>%
-      full_join(df_merged, ., by = id_cols) 
-  }
+  # Start by building previous year's ER data into dataset
+  df_merged <- isolate_col("expenditure_amt", 1, df)
+  df_merged <- isolate_col("cop_budget_total", 0, df) %>%
+    full_join(df_merged, ., by= id_cols)
+  df_merged <- isolate_col("workplan_budget_amt", 0, df) %>%
+    full_join(df_merged, ., by= id_cols)
+  
   # Arrange by program_sub_program and drop program
   df_merged <- df_merged %>% arrange(program_sub_program, beneficiary_sub_beneficiary)
-}
-
-# Switches column order of workplan and COP budgets
-new_col_order <- c("expenditure_amt", "cop_budget_total", "workplan_budget_amt")
-switch_work_and_cop <- function(df){
-  df %>% select(c(all_of(id_cols), all_of(new_col_order)))
 }
 
 # Pipeline that takes in OU-level dataframe and spits out mechanism-level tables
@@ -148,8 +145,7 @@ mech_pipeline <- function(df, mech_name){
   mech_name = enquo(mech_name) # Makes mech_name into a quosure
   df_mech <- df %>%
     filter(.$mech_name == UQ(mech_name)) %>%
-    gen_merged() %>%
-    switch_work_and_cop()
+    gen_merged()
   return(df_mech)
 }
 
@@ -169,47 +165,57 @@ abridge <- function(strng, max_len){
 gen_sheet <- function(wb, df_mech, mech_mod, sheet_num){
   len_df <- count(df_mech)[[1]]
   
+  # change from string to numeric to turn off Excel warning on string numbers
+  df_mech$mech_code <- as.numeric(df_mech$mech_code)
+  
   df_mech_id <- df_mech[1, 1:4]
   df_extra_rows <- df_mech_id[rep(seq_len(nrow(df_mech_id)), each = 5), ]
-  
+
   # always clone the reference sheet 
   cloneWorksheet(wb, mech_mod, clonedSheet = names(wb)[[ref_sheet_num]])
   
   #########  Write dataframes with FSD data  ######### 
-  writeData(wb, sheet = sheet_num, x = df_mech, startRow = 4, colNames = F, withFilter = F)
-  writeData(wb, sheet = sheet_num, x = df_extra_rows, startRow = 4+len_df, 
+  writeData(wb, sheet = sheet_num, x = df_mech, startRow = dataRowStart, colNames = F, withFilter = F)
+  writeData(wb, sheet = sheet_num, x = df_extra_rows, startRow = dataRowStart+len_df, 
             colNames = F, withFilter = F)
   
   ######### Write in formulas for calculations  ######### 
    for (i in dataRowStart:(dataRowStart+len_df-1)){
     writeFormula(wb, sheet = sheet_num,
-                 x = glue('=IF(R2="Workplan Budget",IFERROR(I{i}*J{i},0),IFERROR(H{i}*J{i},0))'),
+                 x = glue('=IF(B2="Workplan Budget",IFERROR(I{i}*J{i},0),IFERROR(H{i}*J{i},0))'),
                  startRow = i, startCol = 11)
-    writeFormula(wb, sheet = sheet_num, x = glue("=(IFERROR(K{i}+I{i},0))"),
+    writeFormula(wb, sheet = sheet_num, x = glue('=IF(B2="Workplan Budget",IFERROR(K{i}+I{i},0),IFERROR(K{i}+H{i},0))'),
                  startRow = i, startCol = 12)
   }
   for (i in (1:(num_paRows-1))){
     writeFormula(wb, sheet = sheet_num, x = glue('=SUMIF($E$4:$E$5000, "{pa_rows[[i,1]]}*", $L$4:$L$400)'),
-                 startCol = (paStartCol+1), startRow = paStartRow+i-1)
+                 startCol = (paStartCol+1), startRow = dataRowStart+i-1)
   }
   # hard-coded locations for summing program area budgets
   writeFormula(wb, sheet = sheet_num, 
-               x = glue("=SUM(O{paStartRow}:O{(paStartRow+num_paRows-2)})"),
-               startCol = (paStartCol+1), startRow = (paStartRow+num_paRows-1))
+               x = glue("=SUM(O{dataRowStart}:O{(dataRowStart+num_paRows-2)})"),
+               startCol = (paStartCol+1), startRow = (dataRowStart+num_paRows-1))
   
   ######### Insert headers  ######### 
-  writeData(wb, sheet = sheet_num, x = matrix_col_names, startRow = 3, colNames = FALSE, 
+  writeData(wb, sheet = sheet_num, x = matrix_col_names, startRow = dataRowStart-1, colNames = FALSE, 
             withFilter = FALSE)
   
   # Insert Drop-down menu. Note that openxlsx cannot handle hiding sheets, so
   # hide the drop-down options on the Guidance page
   df_options <- data.frame(list(list("Option:"), list(default_budget_option)))
-  writeData(wb, sheet_num, x = df_options, startCol = 17, startRow = 2,
+  writeData(wb, sheet_num, x = df_options, startCol = 1, startRow = 2,
             colNames=F, withFilter=F)
-  dataValidation(wb, sheet_num, col = 18, rows=2, type = "list",
+  dataValidation(wb, sheet_num, col = 2, rows=2, type = "list",
                  value = "'Guidance'!$CA$1:$CA$2")
+  dataValidation(wb, sheet_num, col = 5, 
+                 rows=(dataRowStart + len_df):(dataRowStart+len_df+4), 
+                 type = "list",
+                 value = "'Guidance'!$BY$2:$BY$56")
+  dataValidation(wb, sheet_num, col = 6, 
+                 rows=(dataRowStart + len_df):(dataRowStart+len_df+4), 
+                 type = "list",
+                 value = "'Guidance'!$BZ$2:$BZ$28")
   
-#  writeFormula(wb, sheet_num, x="=IF(Q2=='COP Budget', 100, 2", startCol=14, startRow=4)
   
   ######### Add Style ######### 
   addStyle(wb, sheet = sheet_num, yellow_hilite, rows = dataRowStart:(dataRowStart+len_df-1),
@@ -218,22 +224,28 @@ gen_sheet <- function(wb, df_mech, mech_mod, sheet_num){
            cols = 10, stack = TRUE)
   addStyle(wb, sheet = sheet_num, green_fill, rows = dataRowStart:(dataRowStart+len_df+4),
            cols = 12)
-  addStyle(wb, sheet = sheet_num, grey_cells, rows = dataRowStart:(3 + len_df), 
+  addStyle(wb, sheet = sheet_num, grey_cells, rows = dataRowStart:(dataRowStart + len_df-1), 
            cols = c(1:9, 11), gridExpand = TRUE, stack = TRUE)
-  addStyle(wb, sheet = sheet_num, dollar_cell, rows = dataRowStart:(3 + len_df), 
+  addStyle(wb, sheet = sheet_num, dollar_cell, rows = dataRowStart:(dataRowStart + len_df-1), 
            cols = c(7:9, 11:12), gridExpand = TRUE, stack = TRUE)
-  addStyle(wb, sheet = sheet_num, dollar_cell, rows = paStartRow:(paStartRow+num_paRows), 
+  addStyle(wb, sheet = sheet_num, dollar_cell, rows = (dataRowStart+len_df):(dataRowStart+len_df+4), 
+           cols = 12, gridExpand = TRUE, stack = TRUE)
+  addStyle(wb, sheet = sheet_num, dollar_cell, rows = dataRowStart:(dataRowStart+num_paRows), 
            cols = 15, gridExpand = TRUE, stack = TRUE)
   
-  addStyle(wb, sheet = sheet_num, border_cells, rows = 1:(3+len_df), cols = 1:12, gridExpand = TRUE,
-           stack = TRUE)
-  addStyle(wb, sheet = sheet_num, thick_line, rows = 1:(3+len_df), cols = 7, stack = TRUE)
-  addStyle(wb, sheet = sheet_num, thick_line, rows = 1:(3+len_df), cols = 10, stack = TRUE)
-  
-  addStyle(wb, sheet = sheet_num, border_cells, rows = (4+len_df):(8+len_df), cols = c(1:6,12), 
+  addStyle(wb, sheet = sheet_num, border_cells, rows = (dataRowStart-1):(dataRowStart + len_df-1), 
+           cols = 1:12, gridExpand = TRUE, stack = TRUE)
+  addStyle(wb, sheet = sheet_num, thick_line, rows = (dataRowStart-3):(dataRowStart + len_df-1), 
+           cols = 7, stack = TRUE)
+  addStyle(wb, sheet = sheet_num, thick_line, rows = (dataRowStart-3):(dataRowStart + len_df-1), 
+           cols = 10, stack = TRUE)
+  addStyle(wb, sheet = sheet_num, border_cells, rows = (dataRowStart + len_df):(dataRowStart+len_df+4), cols = c(1:6,12), 
            gridExpand = TRUE, stack = TRUE)
-  addStyle(wb, sheet = sheet_num, grey_cells, rows = (4+len_df):(8+len_df), cols = c(1:4), 
+  addStyle(wb, sheet = sheet_num, grey_cells, rows = (dataRowStart + len_df):(dataRowStart+len_df+4), cols = c(1:4), 
            gridExpand = TRUE, stack = TRUE)
+  addStyle(wb, sheet = sheet_num, bold_txt, rows = 12, cols = 15, gridExpand=T, stack=T)
+  addStyle(wb, sheet= sheet_num, mech_num_cell, rows = dataRowStart:(dataRowStart+len_df+4), 
+           cols = 4, gridExpand=T, stack=T)
   return(wb)
 }
 
@@ -277,11 +289,15 @@ gen_wb <- function(OU_name, dr){
   # Filter to only select IMs with actual data
   mech_code_df_short <- mech_code_df[mech_code_df$mech_name %in% mech_lst_short, ] %>%
     select(mech_code, mech_name)
+  # change from string to numeric to turn off Excel warning on string numbers
+  mech_code_df_short$mech_code <- as.numeric(mech_code_df_short$mech_code)
   
   num_mech <- length(mech_lst_short)
   sumRowEnd <- sumRowStart + num_mech -1
   
   # Fill in summary sheet
+  writeData(wb, sheet=summary_sheet_num, x = glue("COP{curr_fiscal_year -2000} Budget Summary"), 
+            startRow=1, colNames=F, withFilter=F)
   writeData(wb, sheet = summary_sheet_num, x = mech_code_df_short,
             startRow = sumRowStart,colNames = FALSE, withFilter = FALSE)
   
@@ -290,7 +306,7 @@ gen_wb <- function(OU_name, dr){
   # NOTE: Code can be improved by having sheet names only generated once, then
   #       assign sheet names from this list. 
   im_summary <- sheet_names %>%
-    lapply(function(x) glue("='{x}'!L2"))
+    lapply(function(x) glue("='{x}'!L4"))
   
   for (i in 1:num_mech){
     writeFormula(wb, sheet = summary_sheet_num, x = im_summary[[i]], 
@@ -301,7 +317,7 @@ gen_wb <- function(OU_name, dr){
   for (i in (1:(num_paRows-1))){
     pa_formula <- "="
     for (nm in sheet_names){
-      pa_formula <- glue("{pa_formula}'{nm}'!O{paStartRow+i-1}+")
+      pa_formula <- glue("{pa_formula}'{nm}'!O{dataRowStart+i-1}+")
     }
     pa_formula <- substr(pa_formula, 1, nchar(pa_formula)-1)
     
@@ -333,7 +349,9 @@ gen_wb <- function(OU_name, dr){
            gridExpand = TRUE, stack = TRUE)
   addStyle(wb, sheet = summary_sheet_num, dollar_cell, rows = sumRowStart:(sumRowStart+num_paRows), 
            cols = 6, gridExpand = TRUE, stack = TRUE)
-
+  addStyle(wb, sheet = summary_sheet_num, bold_txt, rows=11, cols=6, gridExpand=T, stack=T)
+  
+  showGridLines(wb, summary_sheet_num, showGridLines = FALSE)
   
   # Remove reference sheet
   removeWorksheet(wb, ref_sheet_num)
@@ -392,10 +410,10 @@ fisc_dir_name = substr(fisc_dir, 1, nchar(fisc_dir)-1)
 #create output folders folders locally
 dir_create(fisc_dir_name)
 
-# # Tests ========================================================================
-# # test
-# test_OU <- "Cote d'Ivoire"
-# gen_wb(test_OU, fisc_dir)
+# Tests ========================================================================
+# test
+test_OU <- "Cote d'Ivoire"
+gen_wb(test_OU, fisc_dir)
 
 
 # Walk =========================================================================
