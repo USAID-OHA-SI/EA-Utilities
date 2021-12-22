@@ -1,7 +1,7 @@
 
 
 
-
+#creating intervention function based on the SCM of the FAST
 FAST_Intervention<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df, "Standard COP Matrix-R", skip=3)
@@ -72,7 +72,6 @@ FAST_Intervention<-function(df){
   
   return(df)
 }
-
 
 FAST_CCA<-function(df){
   #nested read_csv. Can be removed and run separately
