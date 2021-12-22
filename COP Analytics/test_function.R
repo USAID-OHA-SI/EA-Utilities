@@ -391,3 +391,6 @@ FAST_Earmarks_IM<-function(df){
   
   return(df)
 }
+
+test_functionEA-Utilities\COP Analytics
+source("~/GitHub/EA-Utilities/COP Analytics/test_function.R")
