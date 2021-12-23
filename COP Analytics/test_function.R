@@ -1,3 +1,20 @@
+
+#might not need all of these
+library(glamr)
+library(tidyverse)
+library(gophr)
+library(extrafont)
+library(gt)
+library(glue)
+library(webshot)
+library(dplyr)
+library(devtools)
+library(tidyr)
+library(gisr)
+library(scales)
+library(glitr)
+
+
 #COP22 FAST DATAPACK
 
 #creating intervention function based on the SCM of the FAST
@@ -392,5 +409,5 @@ FAST_Earmarks_IM<-function(df){
   return(df)
 }
 
-test_functionEA-Utilities\COP Analytics
+#test_functionEA-Utilities\COP Analytics
 source("~/GitHub/EA-Utilities/COP Analytics/test_function.R")
