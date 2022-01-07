@@ -1,7 +1,7 @@
 ---
 title: |
-  | \LARGE \textbf{\textcolor{usaid_red}{`r params$fiscal_yr` EXPENDITURE Briefer: `r params$ou`}}
-
+  | \LARGE \textbf{\textcolor{usaid_red}{`r params$fiscal_yr` Expenditure Briefer: `r params$ou`}} 
+#Ben fixed title
 geometry: margin=2cm
 output: 
   pdf_document:
@@ -14,7 +14,7 @@ header-includes:
   - \definecolor{usaid_red}{RGB}{186, 12, 47}
   - \definecolor{usaid_blue}{RGB}{0, 47, 108}
   
-  - \allsectionsfont{\Large \raggedright \color{usaid_red}}
+  - \allsectionsfont{\Large \raggedright \color{usaid_blue}} #fixed color of headers
   
   - \usepackage{longtable}
   - \usepackage{booktabs}
@@ -95,7 +95,7 @@ gc()
 \newpage
 # Introduction
 
-The purpose of this briefer is to highlight the performance and trends of `r params$ou` in COP`r params$fiscal_yr-2001` that can be showcased or used for COP`r params$fiscal_yr-1999` preparation. These are not intended to replace the dashboards, but to provide a summary of what the ER data looks like which could lead to more detailed, tailored asks from country leadership during COP.  For questions please reach out to your EA POC or gh.oha.ea\@usaid.gov. All visuals exclude M\&O unless noted otherwise.
+The purpose of this briefer is to highlight the financial performance and trends of `r params$ou` that can be showcased or used for COP`r params$fiscal_yr-1999` preparation.  These analyses are not intended to replace the EA Tableau dashboards, but rather to provide a summary of key, high-level expenditure data which could lead to more detailed, tailored asks from country leadership during COP planning. For questions please reach out to your EA POC or gh.oha.ea\@usaid.gov. All visuals exclude M\&O unless noted otherwise.
 
 
 # Sample questions \& analytics utilizing PEPFAR financial data for USAID programming
@@ -104,21 +104,22 @@ The purpose of this briefer is to highlight the performance and trends of `r par
 
 # https://tex.stackexchange.com/questions/4519/how-do-i-create-an-invisible-character
 # Must use phantom because Kable strips white space LaTeX commands
-bullets1 <- "\\textbullet Expenditure vs budget \n \\textbullet Percent budget expended vs target achievement \n $\\phantom{txt}\\boldsymbol{-}$ ER vs budget (annually) \n $\\phantom{txt}\\boldsymbol{-}$ Outlay vs budget (quarterly) \n \\textbullet Program area spend per result and budget per target within a FY, \n $\\phantom{\\textbullet}$ and yearly trends"
+bullets1 <- "\\textbullet Expenditure vs budget \n \\textbullet Percent budget expended vs target achievement \n $\\phantom{txt}\\boldsymbol{-}$ ER vs budget (annually) \n $\\phantom{txt}\\boldsymbol{-}$ Outlay vs budget (quarterly) \n \\textbullet Unit expenditure or budget within a FY, and yearly trends
+ within a FY, \n $\\phantom{\\textbullet}$ and yearly trends"
 
 bullets2 <- "\\textbullet Budget or expenditure per beneficiary group \n $\\phantom{txt}\\boldsymbol{-}$ Trends over time"
 
 bullets3 <- '\\textbullet Expenditure by cost category \n \\textbullet Expenditure in “X” vs target achievement'
 
-bullets4 <- "\\textbullet Change in budgets vs change in targets between FY \n \\textbullet Trends in expenditure vs trends in results by FY"
+#bullets4 <- "\\textbullet Change in budgets vs change in targets between FY \n \\textbullet Trends in #expenditure vs trends in results by FY"
 
 q1 <- "Are we using all of our planned resources? Should and does this track with our achievement?"
-q2 <-"What are we investing per beneficiary?"
+q2 <-"How are we using our resources and how does it relate to performance?"
 q3 <- "How are we using our resources and how does it relate to performance?"
-q4 <- "How are resources and results/targets shifting?"
+#q4 <- "How are resources and results/targets shifting?"
 
-df<- data.frame(col1 = c(q1, q2, q3, q4),
-                col2 = c(bullets1, bullets2, bullets3, bullets4))
+df<- data.frame(col1 = c(q1, q2, q3, ),
+                col2 = c(bullets1, bullets2, bullets3, ))
 
 col_names <- c("Key Questions", "Sample Analytics / Visualizations\n(at global, agency, IM, partner level)")
 
@@ -134,7 +135,7 @@ df %>%
 
 ```
 # Budget Execution Overview
-The county team can review the budget execution broken down by agency for COP19 and COP20. A “good” budget execution typically falls within the range of 90-110\%. 
+Country teams should review the budget execution (expenditure / budget) broken down by agency for COP19 and COP20. While there are many reasons for deviations between expenditure and budget, we would expect some follow up and / or explanations for values that fall outside of the range of 90-110\%. 
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 ### Agency budget executio"n overview ####################################
@@ -197,12 +198,12 @@ get_ou_mechanism %>%
   add_header_above(c(" "=1, "COP19 Performance"=3, "COP20 Performance"=3)) 
 ```
 # Unit Expenditure
-The table below shows unit expenditures (UEs) for all mechanisms in `r params$ou` that had targets along the treatment cascade. Unit expenditures may not be the best way to evaluate program performance or efficiency compared to other IMs, and therefore interpretation comes with many caveats. It is important to note the following when discussing UEs: 
+The table below shows unit expenditures (UEs) for all mechanisms in `r params$ou` that had **targets along the treatment cascade**. While UEs can be useful to inform assessment of program performance or efficiency, they are imperfect measures - particularly when comparing across mechanisms. It is important to note the following caveats/considerations when discussing UEs: 
 
-* **Expenditure data represents PEPFAR expenditures only**:  Expenditures for IMs that are 100\% PEPFAR funded will be a close proxy for the “cost” of services provided that are paid for by PEPFAR. However if an IM receives other sources of funding (or is “cost-shared” in some way) - e.g. MoH pays for facilities, staff; Global Fund pays for commodities; etc. - expenditures will not represent the full cost of services.  Activity-based costing seeks to understand the full cost of an HIV program. 
-* **Expenditure data - in it’s aggregate form - does not indicate the inputs provided by/scope of each partner**: Some partners provide 100\% of the inputs required to achieve a given output while others may be funded to provide only a specific portion of the full service (e.g. providing TA for site-level service delivery; providing VMMC but not HTS component of full VMMC package).  In addition, some partners may have the mandate to serve hard-to-reach populations or locations, likely resulting in higher expenditures per result.  
-* **Expenditure data represents IMs with different modalities \/ programmatic models \& scopes**: Different modalities\/programmatic models (e.g. Community vs facility models; local NGOs vs international organizations; private sector vs public sector; etc.) will have different cost structures related to the types\/number of inputs needed, whether PEPFAR is paying for the full or partial portion of services; quality\/effectiveness; and the scope of interventions conducted.  Similarly, there are some IMs that may have few targets (DSD or TA). However the primary SOW of the IM is not to achieve targets but perhaps some other activity, such as clinic renovation\/construction, policy advancement, technical assistance. These IMs will naturally have very high UEs because the IM does set targets, however that is a very small portion of the work plan's planned expenditure for the year.
-* **Expenditures will be different depending on how many years the IM has been operating**: Start up and close out years have atypical expenditure patterns - that can be highlighted because of the cash-based accounting and other ER methodologies.  For example, during start up, mechanisms may have significant one-time investment expenditures that are not amortized over time. Similarly, IMs in start-up or closeout may not be able\/are not planning to achieve many targets when compared to years when the IM is in year 3 or year 4. In both start up and close out years, we typically see high program management relative to implementation expenditures.   In addition, due to both economies of scale and natural efficiency improvement, we tend to see expenditures per result achieved go down over time and as programs mature.  
+* ***Expenditure data represents PEPFAR expenditures only***:  Expenditures for IMs that are 100\% PEPFAR funded will be a close proxy for the “cost” of services provided that are paid for by PEPFAR. However if an IM receives other sources of funding (or is “cost-shared” in some way) - e.g. MoH pays for facilities, staff; Global Fund pays for commodities; etc. - expenditures will not represent the full cost of services.  Activity-based costing seeks to understand the full cost of an HIV program. 
+* ***Expenditure data - in it’s aggregate form - does not indicate the inputs provided by/scope of each partner***: Some partners provide 100\% of the inputs required to achieve a given output while others may be funded to provide only a specific portion of the full service (e.g. providing TA for site-level service delivery; providing VMMC but not HTS component of full VMMC package).  In addition, some partners may have the mandate to serve hard-to-reach populations or locations, likely resulting in higher expenditures per result.  
+* ***Expenditure data represents IMs with different modalities \/ programmatic models \& scopes***: Different modalities\/programmatic models (e.g. Community vs facility models; local NGOs vs international organizations; private sector vs public sector; etc.) will have different cost structures related to the types\/number of inputs needed, whether PEPFAR is paying for the full or partial portion of services; quality\/effectiveness; and the scope of interventions conducted.  Similarly, there are some IMs that may have few targets (DSD or TA). However the primary SOW of the IM is not to achieve targets but perhaps some other activity, such as clinic renovation\/construction, policy advancement, technical assistance. These IMs will naturally have very high UEs because the IM does set targets, however that is a very small portion of the work plan's planned expenditure for the year.
+* ***Expenditures will be different depending on how many years the IM has been operating***: Start up and close out years have atypical expenditure patterns - that can be highlighted because of the cash-based accounting and other ER methodologies.  For example, during start up, mechanisms may have significant one-time investment expenditures that are not amortized over time. Similarly, IMs in start-up or closeout may not be able\/are not planning to achieve many targets when compared to years when the IM is in year 3 or year 4. In both start up and close out years, we typically see high program management relative to implementation expenditures.   In addition, due to both economies of scale and natural efficiency improvement, we tend to see expenditures per result achieved go down over time and as programs mature.  
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ### Unit Expenditure ####################################
@@ -263,7 +264,9 @@ local_table %>%
   column_spec(4, width='14em')
 ```
 # Breakdown by Service Delivery Type
-The transition to epidemic control represents a paradigm shift in how we think about the mix in service delivery (SD), non service delivery (NSD) and program management (PM). As countries reach epidemic control, the expectation is that spending will shift to a mainly NSD focus (accompanied by activities like technical assistance, mentorship, and supervision). If an OU is still far away from epidemic control, more investment in SD may be a priority. Other agencies may be critical of the program management (PM) spend proportion. It is important to note that the PM for international partners is largely driven by an organization’s NICRA, which is negotiated during contract negotiations. It can be difficult to negotiate a reduction in PM expenditures, and potentially jeopardizes successful implementation without sufficient management and oversight in place. Below is a graph of the shift in spending by interaction type from FY18 onwards. 
+Particularly as countries approach epidemic control, there is a need to understand and optimize the mix of service delivery (SD), non service delivery (NSD) and program management (PM). While shifts will be dependent on epidemiology, funding, and the political landscape, as some countries reach epidemic control, they  may consider shifting investments to mainly NSD-focused programs (accompanied by activities like technical assistance, mentorship, and supervision).
+PM spend proportion is another area of focus for all countries.  Program management is an important part of successful programs and it is important to note that the PM for international partners is largely driven by an organization’s NICRA, which is negotiated during contract negotiations.  While there may be ways to minimize other components of PM, reductions should not jeopardize having sufficient management and oversight in place. Below is a graph of the shift in spending by interaction type from FY18 onwards. 
+
 \\
 \\
 ```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=8,fig.height=5}
@@ -272,7 +275,8 @@ gen_serv(df_budget_exec, params$ou)
 
 # HIV Testing Services (HTS)
 
-The HTS program area should align with any mechanisms focused on testing services, as well as those conducting demand creation, linkage/referral to testing services, etc. It is important to note review that the mechanisms listed below mechanisms have executed their HTS budgets inline with their relevant programmatic (i.e. MER) performance. If a mechanism is overspending their budget with poor performance on the testing indicators that does not match, be prepared to explain why that has occurred. 
+Mechanisms focused on providing testing services, as well as those conducting demand creation, linkage/referral to testing services should also have expenditure within the HTS program area. It is important to note that the mechanisms listed below have executed their HTS budgets inline with their relevant programmatic (i.e. MER) performance. If a mechanism is overspending their budget with poor performance on the testing indicators, be prepared to explain why that has occurred. 
+
 \newline
 \newline
 ```{r }
@@ -295,10 +299,7 @@ hts_ue %>%
 ```
 # Care and Treatment (C&T)
 
-The C&T program area should align with any mechanisms focused on treatment, as well as  linkage to treatment, adherence, and retention services. It is important to review whether that the mechanisms listed below have executed their C&T budgets inline with their relevant programmatic (i.e. MER) performance. If a mechanism is overspending their budget with poor performance on the treatment indicators that does not match, be prepared to explain why that has occurred. 
-One should review these specific mechanisms to ensure that the spending aligns with their programmatic purpose. 
-
-Use the C&T Program Area for any C&T expenditures, including those that contribute directly to MER indicators like TX_CURR and TX_NEW, but also A
+Mechanisms focused on providing treatment services, or linkage to treatment, adherence, and retention services should also have expenditure within the C&T program area. It is important to review whether that the mechanisms listed below have executed their C&T budgets inline with their relevant programmatic (i.e. MER) performance. If a mechanism is overspending their budget with poor performance on the treatment indicators, be prepared to explain why that has occurred. One should review these specific mechanisms to ensure that the spending aligns with their programmatic purpose. Note- financial data is not disaggregated by specific indicators. 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ct_ue <- get_program_specific(df_ue_indiv, programs="C&T")%>%
   mutate(across(4:5, currency)) %>%
@@ -317,7 +318,7 @@ ct_ue %>%
 ```
 # Orphans and Vulnerable Children (OVC)
 
-Funding for OVC is that attributed to the OVC beneficiary group when budgeting or doing expenditure reporting. It is also often aligned with the Socio-Economic program area. When triangulated with the MER indicator OVC_SERV, it is a measure of the cost of all (both active and graduated) children participating in the OVC program for that quarter. When using OVC financial data, keep in mind that a proportion of the funding could be also attributed to the DREAMS initiative, thereby inflating the overall budget going to OVC programming. Understanding the actual proportion going strictly to OVC and DREAMS can be helpful in lobbying for increases in OVC budgets (not including DREAMS) or in defending against any cuts, especially if DREAMS initiative funds make up a majority of the OVC budget.  
+Funding for OVC is attributed to the OVC beneficiary group when budgeting or doing expenditure reporting.  While these resources are often aligned with the Socio-Economic program area, they can also include prevention activities. When triangulated with the MER indicator OVC_SERV, it is a measure of the PEPFAR resources for  all (both active and graduated) children participating in the OVC program. When using OVC financial data, keep in mind that a proportion of the funding could be also attributed to the DREAMS initiative, thereby inflating the overall budget going to OVC programming. Understanding the actual proportion going strictly to OVC and DREAMS can be helpful in lobbying for increases in OVC budgets (not including DREAMS) or in defending against any cuts, especially if DREAMS initiative funds make up a majority of the OVC budget.    
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ovc_ue <- get_program_specific(df_ue_indiv, programs="OVC")
@@ -347,7 +348,8 @@ if(nrow(ovc_ue)!=0){
 ```
 
 # Commodities
-USAID’s commodity mechanisms typically face challenging reviews given their size and scope. It is important to be able to explain and justify why a commodity-specific sub-program area budget was not executed within the 90-110\% range. Factors can include delays in shipping, COVID-19 program interruptions, and shifts in programmatic priorities. 
+USAID’s commodity mechanisms data can face significant scrutiny given their size and scope.  It may be important to be able to explain and justify why a commodity-specific sub-program area budget was not executed within the 90-110\% range, something that happens within the commodities space quite regularly. Factors can include delays in shipping, COVID-19 program interruptions, and shifts in programmatic priorities. The USAID/HQ commodities backstops can support if any questions / concerns that arise. Note-total includes the sum of PSM and RTK expenditure and budget.
+ 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 df_comm <- psm_murder(df_fsd) %>%
   mutate(across(4:5, currency)) %>%
@@ -363,6 +365,7 @@ df_comm %>%
   column_spec(2, width="15em")
 ```
 # Human Resources for Health (HRH)
+
 ## HRH in the context of expenditure data
 The chart below provides an OU-level overview on HRH information (HRH FTE, HRH individuals, HRH expenditure, and total expenditure). Most OUs report anywhere from 30-60\% of the total OU expenditure is for HRH, and HRH is one of PEPFAR’s top cost drivers. 
 
@@ -456,7 +459,7 @@ mechXpa <- gen_budget_exec(df_fsd, group_col = c("mech", "program"))%>%
 
 
 mechXpa %>%
-  select(-fundingagency) %>%
+ # select(-fundingagency) %>%
   kable("latex", booktabs=T, longtable=T, 
         col.names=c("Mechanism", "Program", budg_ex_cols)) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header"),
