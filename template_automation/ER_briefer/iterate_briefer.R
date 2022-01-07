@@ -135,7 +135,7 @@ ou <- ou[1:5]
 ##########################################################
 ### Iterate ============================================
 reports <- tibble(
-  filename = str_c("data_quality_", ou, ".pdf"),
+  filename = str_c("COP22 Briefer_", ou, ".pdf"), #Ben fixed output name
   params = map(ou, ~list(ou = .))
 )
 
