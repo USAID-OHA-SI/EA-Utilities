@@ -1,6 +1,6 @@
-# Version 2.0
+# Version 2.1
 # Source code for ER briefer
-# 2.0 update: Removed code that will be placed in the markdown code or
+# 2.1 update: Removed code that will be placed in the markdown code or
 
 # install.packages("extrafont")
 # install.packages("fontcm")
@@ -309,24 +309,30 @@ gen_ue_indiv <- function(fsd, msd){
     select(operatingunit,fundingagency,fiscal_year,mech_code,mech_name,program,
            indicator,achievement)%>%
     pivot_wider(names_from = indicator, values_from=achievement)
-  
+
+  # Must check if OVC_SERV is included in the ou 
+  if(!"OVC_SERV" %in% names(msd_tgt_indiv)){
+    msd_tgt_indiv["OVC_SERV"] = 0
+    }
   #join datasets together 
   df_ue_indiv<-left_join(fsd, msd_tgt_indiv)%>%
     dplyr::mutate( mech = paste(mech_code,"-", mech_name)) %>%
     relocate(expenditure_amt, .before= cop_budget_total)%>%
     relocate(mech, .before= expenditure_amt)%>%
-    select(operatingunit,fundingagency,program,mech:OVC_SERV)
+    select(operatingunit,fundingagency,program,mech,
+           expenditure_amt, cop_budget_total, budget_execution,
+           HTS_TST, HTS_TST_POS, TX_CURR, TX_NEW, OVC_SERV)
   
   return(df_ue_indiv)
 }
 
 #Use below function to get HTS, C&T, OVC info for a specific OU
-get_program_specific<-function(df_ue_temp, ou="operatingunit",programs=c("HTS","C&T","OVC")){
+get_program_specific<-function(df_ue_temp, programs=c("HTS","C&T","OVC")){
   df<-df_ue_temp%>%
     mutate_at(vars(expenditure_amt:OVC_SERV),~replace_na(.,0)) %>%
     filter(program %in% programs)%>%
     select_if(~!( all(. == 0)))%>%
-    select(-(operatingunit))
+    select(-any_of(c("operatingunit")))
   return(df)
 }
 
@@ -373,9 +379,16 @@ gen_hrh_main <- function(df_hrh, df_fsd){
   return(hrh_fsd1)
 }
 
+fncols <- function(data, cname) {
+  add <-cname[!cname%in%names(data)]
+  
+  if(length(add)!=0) data[add] <- 0
+  data
+}
+
 ## Generate HRH staff breakdown table
 gen_staff <- function(df_hrh){
-  df_hrh%>%
+  df_hrh_mod <- df_hrh%>%
     dplyr::mutate(interaction_type=dplyr::case_when(interaction_type=="Service Delivery"~"SD",
                                                     interaction_type=="Non Service Delivery"~"NSD",
                                                     TRUE ~interaction_type))%>%
@@ -386,8 +399,24 @@ gen_staff <- function(df_hrh){
     pivot_longer(actual_annual_spend:annual_fte, names_to="key", values_to="value")%>%
     pivot_wider(names_from = c(er_staff, key), 
                 values_from = value,
-                values_fill=0)%>%
+                values_fill=0)
+  
+  
+  # https://stackoverflow.com/questions/45857787/adding-column-if-it-does-not-exist
+  full_staff_cols <- c("Other Staff-NSD_actual_annual_spend",
+                       "Other Staff-NSD_annual_fte",
+                       "Program Management-NSD_actual_annual_spend",
+                       "Program Management-NSD_annual_fte",
+                       "HCW: Clinical-SD_actual_annual_spend",
+                       "HCW: Clinical-SD_annual_ft",
+                       "HCW: Ancillary-SD_actual_annual_spend",
+                       "HCW: Ancillary-SD_annual_fte"
+                       )
+  
+  df_hrh_mod <- fncols(df_hrh_mod, full_staff_cols)
 
+
+  df_hrh_mod %>%
     select(-c(fiscal_year,operatingunit))%>%
     adorn_totals("row",,,, -fundingagency,)%>%
     dplyr::rowwise() %>%

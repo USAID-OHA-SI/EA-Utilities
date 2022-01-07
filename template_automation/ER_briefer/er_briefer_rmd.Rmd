@@ -35,7 +35,7 @@ header-includes:
       \renewcommand{\headrulewidth}{0pt}}
 
 params:
-  ou: "Mozambique"
+  ou: "Angola"
   fiscal_yr: 2021
       
 ---
@@ -275,20 +275,22 @@ gen_serv(df_budget_exec, params$ou)
 The HTS program area should align with any mechanisms focused on testing services, as well as those conducting demand creation, linkage/referral to testing services, etc. It is important to note review that the mechanisms listed below mechanisms have executed their HTS budgets inline with their relevant programmatic (i.e. MER) performance. If a mechanism is overspending their budget with poor performance on the testing indicators that does not match, be prepared to explain why that has occurred. 
 \newline
 \newline
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r }
 df_ue_indiv <- gen_ue_indiv(fsd_tgt, msd_tgt)
 hts_ue <- get_program_specific(df_ue_indiv, programs="HTS")%>%
   mutate(across(4:5, currency)) %>%
-  mutate(across(6, function(x) x/100)) %>%
-  mutate(across(6, percent))
+  mutate(across(6:8, function(x) x/100)) %>%
+  mutate(across(6:8, percent))
 
 hts_ue %>%
   select(-c(fundingagency,program)) %>%
   kable("latex", booktabs=T, longtable=T,
-        col.names = c("Mechanism", budg_ex_cols[1:3])) %>%
+        col.names = c("Mechanism", budg_ex_cols[1:3], 
+                      "TST Achieved", "TST POS Achieved")) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
   pack_rows(index = ordered_table(hts_ue, "fundingagency")) %>%
-  column_spec(1, width="15em")
+  column_spec(1, width="15em") %>%
+  column_spec(5:6, width="5em")
 
 ```
 # Care and Treatment (C&T)
@@ -300,28 +302,32 @@ Use the C&T Program Area for any C&T expenditures, including those that contribu
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ct_ue <- get_program_specific(df_ue_indiv, programs="C&T")%>%
   mutate(across(4:5, currency)) %>%
-  mutate(across(6, function(x) x/100)) %>%
-  mutate(across(6, percent))
+  mutate(across(6:8, function(x) x/100)) %>%
+  mutate(across(6:8, percent))
 
 ct_ue %>%
   select(-c(fundingagency,program)) %>%
   kable("latex", booktabs=T, longtable=T,
-        col.names=c("Mechanism", budg_ex_cols[1:3])) %>%
+        col.names=c("Mechanism", budg_ex_cols[1:3],
+                    "TX CURR", "TX NEW")) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))%>%
   pack_rows(index = ordered_table(ct_ue, "fundingagency")) %>%
-  column_spec(1, width="15em")
+  column_spec(1, width="15em")%>%
+  column_spec(5:6, width="5em")
 ```
 # Orphans and Vulnerable Children (OVC)
 
 Funding for OVC is that attributed to the OVC beneficiary group when budgeting or doing expenditure reporting. It is also often aligned with the Socio-Economic program area. When triangulated with the MER indicator OVC_SERV, it is a measure of the cost of all (both active and graduated) children participating in the OVC program for that quarter. When using OVC financial data, keep in mind that a proportion of the funding could be also attributed to the DREAMS initiative, thereby inflating the overall budget going to OVC programming. Understanding the actual proportion going strictly to OVC and DREAMS can be helpful in lobbying for increases in OVC budgets (not including DREAMS) or in defending against any cuts, especially if DREAMS initiative funds make up a majority of the OVC budget.  
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ovc_ue <- get_program_specific(df_ue_indiv, programs="OVC")%>%
-  mutate(across(4:5, currency)) %>%
-  mutate(across(6, function(x) x/100)) %>%
-  mutate(across(6, percent))
-
-ovc_ue %>%
+ovc_ue <- get_program_specific(df_ue_indiv, programs="OVC")
+if(nrow(ovc_ue)!=0){
+  ovc_ue <- ovc_ue %>%
+    mutate(across(4:5, currency)) %>%
+    mutate(across(6:7, function(x) x/100)) %>%
+    mutate(across(6:7, percent))
+  
+  ovc_ue %>%
   select(-c(fundingagency,program)) %>%
   kable("latex", booktabs=T, longtable=T,
         col.names=c("Mechanism", budg_ex_cols[1:3], "OVC SERV")) %>%
@@ -329,6 +335,15 @@ ovc_ue %>%
                 font_size=9)%>%
   pack_rows(index = ordered_table(ovc_ue, "fundingagency")) %>%
   column_spec(1, width="15em")
+}else{
+  data.frame(list("No mechanisms have OVC SERV data")) %>% 
+    kbl(format = "latex", col.names = NULL)%>%
+    kable_paper(latex_options = c("hold_position"))
+}
+
+  
+
+
 ```
 
 # Commodities
@@ -367,8 +382,6 @@ hrh_main %>%
 ## In-depth Expenditure Analysis of HRH Information
 In the chart below, we can see the breakdown of expenditure on HRH by ER category (Ancillary, Clinical, Other Staff, and Program Management (PM)) in `r params$ou`. Note: All Ancillary and Clinical Staff are Service Delivery and all Other and PM Staff are Non Service Delivery. Depending on the programmatic goals of a mechanism, it will be necessary to understand how this aligns with the staff breakdown. This information is presented at the agency level. 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-
 hrh_staff <- gen_staff(df_hrh)%>%
   ungroup()%>%
   mutate(across(c(2:16)[c(T, F)], currency)) %>%
@@ -386,25 +399,25 @@ hrh_ancil %>%
   kable("latex", booktabs=T, longtable=T,
         col.names=hrh_cols) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
-  add_header_above(c(" "=1, "HCW: Ancillary - SD"=4)) 
+  add_header_above(c(" "=1, "HCW: Ancillary - SD"=4))
 
 hrh_clinic %>%
   kable("latex", booktabs=T, longtable=T,
         col.names=hrh_cols) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
-  add_header_above(c(" "=1, "HCW: Clinical - SD"=4)) 
+  add_header_above(c(" "=1, "HCW: Clinical - SD"=4))
 
 hrh_other %>%
   kable("latex", booktabs=T, longtable=T,
         col.names=hrh_cols) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
-  add_header_above(c(" "=1, "Other Staff - NSD"=4)) 
+  add_header_above(c(" "=1, "Other Staff - NSD"=4))
 
 hrh_pm %>%
   kable("latex", booktabs=T, longtable=T,
         col.names=hrh_cols) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
-  add_header_above(c(" "=1, "Program Management - NSD"=4)) 
+  add_header_above(c(" "=1, "Program Management - NSD"=4))
 ```
 ## Comparing Tx_CURR to  Care and Treatment (C\&T) HRH FTE and Expenditures
 Given the importance of treatment programs to sustaining PEPFAR’s success, the chart below presents how C\&T-SD spending and FTE align with TX_CURR achievement.  While a direct link between the HRH and MER data is difficult to discern, it is important to reflect on how the balance of C\&T FTE aligns with treatment-related indicators. For example, a funding agency spending large amounts on C\&T with low achievement may require greater programmatic support. There is no ideal expenditure or total FTE that country teams should aim for, however you can make comparisons across agencies and mechanisms to better understand HRH investments that support Tx_CURR target achievement.
