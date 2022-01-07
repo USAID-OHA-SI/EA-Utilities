@@ -1,6 +1,8 @@
 ---
 title: |
   | \LARGE \textbf{\textcolor{usaid_red}{`r params$fiscal_yr` EXPENDITURE Briefer: `r params$ou`}}
+
+geometry: margin=2cm
 output: 
   pdf_document:
     toc: true
@@ -37,10 +39,17 @@ params:
   fiscal_yr: 2021
       
 ---
-
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+# version 1.3
+# date: 2022 Jan 6
+# author: David Song
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(echo = FALSE)
+```
 
+```{r r-setup, include=FALSE}
+library(extrafont)
 library(glitr)
 library(scales)
 library(glamr)
@@ -61,6 +70,7 @@ source("er_briefer_source.R")
 
 df_fsd_full <- read_csv(glue("{temp_dir}/df_fsd.csv"))
 df_msd_full <- read_csv(glue("{temp_dir}/msd_tgt.csv"))
+df_hrh_full <- read_csv(glue("{temp_dir}/df_hrh.csv"))
 
 df_fsd <- df_fsd_full %>%
   dplyr::filter(operatingunit == params$ou)
@@ -73,8 +83,12 @@ fsd_tgt <- gen_fsd_tgt(df_fsd)
 msd_tgt<- df_msd_full %>%
   dplyr::filter(operatingunit == params$ou)
 
+df_hrh <- df_hrh_full %>%
+  dplyr::filter(operatingunit == params$ou)
+
 rm(df_fsd_full)
 rm(df_msd_full)
+rm(df_hrh_full)
 gc()
 
 ```
@@ -123,12 +137,18 @@ df %>%
 The county team can review the budget execution broken down by agency for COP19 and COP20. A “good” budget execution typically falls within the range of 90-110\%. 
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
-### Agency budget execution overview ####################################
-get_ou_agency_be<- gen_budget_exec(df_budget_exec)
+### Agency budget executio"n overview ####################################
+get_ou_agency_be<- gen_budget_exec(df_budget_exec) %>%
+  mutate(across(c(2:3,5:6), currency)) %>%
+  mutate(across(c(4,7), percent)) 
 
+budg_ex_cols <- c("Expenditure", "Budget", "Budget Execution",
+                  "Expenditure", "Budget", "Budget Execution")
 get_ou_agency_be %>%
-  kable("latex", booktabs=T, longtable=T) %>%
-  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+  kable("latex", col.names = c("Agency", budg_ex_cols), booktabs=T, longtable=T) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
+  column_spec(c(4,7), width = '5em') %>%
+  add_header_above(c(" "=1, "COP19 Performance"=3, "COP20 Performance"=3)) 
   
 ```
 # Budget Execution by Program Area
@@ -136,19 +156,45 @@ Below is a table of budget execution by program area.  It will be important to e
 
 ```{r echo=FALSE}
 ### Budget execution by program area ####################################
-get_ou_pa<- gen_budget_exec(df_budget_exec, "program")
+get_ou_pa<- gen_budget_exec(df_budget_exec, "program")%>%
+  mutate(across(c(3:4,6:7), currency)) %>%
+  mutate(across(c(5,8), percent)) 
 get_ou_pa %>%
-  kable("latex", booktabs=T, longtable=T) %>%
-  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+  kable("latex",  booktabs=T, longtable=T, 
+        col.names = c("", "Program Area", budg_ex_cols)) %>% 
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))%>%
+  # set column name font size smaller
+  row_spec(0, font_size=9) %>%
+  column_spec(2, width = '3em') %>%
+  column_spec(c(5,8), width = '5em') %>%
+  # group rows based on fundingagency
+  pack_rows(index = ordered_table(get_ou_pa, "fundingagency"), color="black") %>%
+  # this "column_spec" hides the extra "fundingagency" column
+  column_spec(1, width='0em', color="white") %>%
+  add_header_above(c(" "=2, "COP19 Performance"=3, "COP20 Performance"=3))
+
 ```
+
 # Budget Execution by Mechanism
 The following table presents budget execution by mechanism. With the information displayed, country teams can observe and evaluate the progress of each partner's project. This particular report can be utilized in strategic discussions when immediate financial information for a mechanism is required or when reviewing comparable mechanisms across agencies becomes influential in the argument. The data can further be broken down to the program area level, where each program classification can quickly be analyzed according to the investment implemented by the mechanism. Furthermore, the tables can assist in noting key talking points where budget and expenditure amounts might not correlate with the expectation (analysis) of the mission. (rephrase) 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ### OU x Mechanism ####################################
-get_ou_mechanism<-gen_budget_exec(df_budget_exec, "mech")
+get_ou_mechanism<-gen_budget_exec(df_budget_exec, "mech") %>%
+  dplyr::filter(fundingagency=="USAID") %>%
+  select(-fundingagency) %>%
+  mutate(across(c(2:3,5:6), currency)) %>%
+  mutate(across(c(4,7), percent)) 
+
+
 get_ou_mechanism %>%
-  kable("latex", booktabs=T, longtable=T) %>%
-  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+  kable("latex", booktabs=T, longtable=T, 
+        caption = "USAID Mechanisms",
+        col.names=c("Program Area", budg_ex_cols)) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"),
+                font_size=8)%>%
+  column_spec(c(4,7), width = '5em') %>%
+  column_spec(1, width="10em") %>%
+  add_header_above(c(" "=1, "COP19 Performance"=3, "COP20 Performance"=3)) 
 ```
 # Unit Expenditure
 The table below shows unit expenditures (UEs) for all mechanisms in `r params$ou` that had targets along the treatment cascade. Unit expenditures may not be the best way to evaluate program performance or efficiency compared to other IMs, and therefore interpretation comes with many caveats. It is important to note the following when discussing UEs: 
@@ -159,47 +205,91 @@ The table below shows unit expenditures (UEs) for all mechanisms in `r params$ou
 * **Expenditures will be different depending on how many years the IM has been operating**: Start up and close out years have atypical expenditure patterns - that can be highlighted because of the cash-based accounting and other ER methodologies.  For example, during start up, mechanisms may have significant one-time investment expenditures that are not amortized over time. Similarly, IMs in start-up or closeout may not be able\/are not planning to achieve many targets when compared to years when the IM is in year 3 or year 4. In both start up and close out years, we typically see high program management relative to implementation expenditures.   In addition, due to both economies of scale and natural efficiency improvement, we tend to see expenditures per result achieved go down over time and as programs mature.  
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-### OU x Mechanism ####################################
-df_ue <- gen_ue(fsd_tgt, msd_tgt)
+### Unit Expenditure ####################################
+df_ue <- gen_ue(fsd_tgt, msd_tgt)%>%
+  mutate(across(c(3,5,7,9), currency))
+
+ue_cols <- c("", "Mechanism", "TST UE", "TST Results", "TST POS UE", "TEST POS Results",
+             "TX CURR UE", "TX CURR Results", "TX NEW UE", "TX NEW Results")
+
 df_ue %>%
-  kable("latex", booktabs=T, longtable=T) %>%
-  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+  kable("latex", booktabs=T, longtable=T, col.names=ue_cols) %>% # 
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"),
+                font_size=9) %>%
+  row_spec(0, font_size=7) %>%
+  pack_rows(index = ordered_table(df_ue, "fundingagency")) %>%
+  column_spec(2, width='10em') %>%
+  # this "column_spec" hides the extra "fundingagency" column
+  column_spec(1, width='0em', color="white") %>%
+  column_spec(3:10, width="3em")
 ```
 # Local Partner Program Financial Performance
 The transition to local partners (LP) remains a key priority for USAID. The below graph highlights the trend in LP expenditure from FY18 onwards. You can also see a table of budget execution for local partners by program area. 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=6}
 glamr::load_secrets()
 
 df_local<- gen_local(df_fsd)
-local_table <- gen_local_table(df_local)
+local_table <- gen_local_table(df_local) %>%
+  mutate(across(3:4, currency)) %>%
+  mutate(across(5, function(x) x/100)) %>%
+  mutate(across(5, percent)) %>%
+  mutate_at("mech", str_trunc, 70, "center") 
 local_graph <- gen_graph_tbl(df_local)
-plot_local(local_graph)
+plot_local(local_graph, params$ou)
 ```
 
 The following USAID local partners reported expenditure in COP20. It is important to note how their expenditures are aligned with programmatic performance, and what course corrections, if any, should be made in COP22. If a particular local partner had both strong financial and programmatic performance, they could be due for a budget increase in COP22, or at the very least a continuation of funding due to a successful implementation year. 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+# test2<- local_table%>%
+#   select(mech)%>%
+#   group_by(mech)%>%
+#   summarize(mech = count(mech))
+# test3 <- ordered_table(local_table$mech)
+# 
+# col = "mech"
+# test2<-local_table %>% count(across(col))%>%
+#   pivot_wider(names_from=matches(col), values_from=n)
+
 local_table %>%
-  kable("latex", booktabs=T, longtable=T) %>%
-  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+  select(-mech) %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names = c("Program Area", budg_ex_cols[1:3])) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))%>%
+  # group rows based on mech
+  pack_rows(index = ordered_table(local_table, "mech"), color="black") %>%
+  column_spec(2:3, width='8em') %>%
+  column_spec(4, width='14em')
 ```
 # Breakdown by Service Delivery Type
 The transition to epidemic control represents a paradigm shift in how we think about the mix in service delivery (SD), non service delivery (NSD) and program management (PM). As countries reach epidemic control, the expectation is that spending will shift to a mainly NSD focus (accompanied by activities like technical assistance, mentorship, and supervision). If an OU is still far away from epidemic control, more investment in SD may be a priority. Other agencies may be critical of the program management (PM) spend proportion. It is important to note that the PM for international partners is largely driven by an organization’s NICRA, which is negotiated during contract negotiations. It can be difficult to negotiate a reduction in PM expenditures, and potentially jeopardizes successful implementation without sufficient management and oversight in place. Below is a graph of the shift in spending by interaction type from FY18 onwards. 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-gen_serv(df_budget_exec)
+\\
+\\
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=8,fig.height=5}
+gen_serv(df_budget_exec, params$ou)
 ```
 
 # HIV Testing Services (HTS)
 
 The HTS program area should align with any mechanisms focused on testing services, as well as those conducting demand creation, linkage/referral to testing services, etc. It is important to note review that the mechanisms listed below mechanisms have executed their HTS budgets inline with their relevant programmatic (i.e. MER) performance. If a mechanism is overspending their budget with poor performance on the testing indicators that does not match, be prepared to explain why that has occurred. 
-
+\newline
+\newline
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 df_ue_indiv <- gen_ue_indiv(fsd_tgt, msd_tgt)
-hts_ue <- get_program_specific(df_ue_indiv, programs="HTS")
+hts_ue <- get_program_specific(df_ue_indiv, programs="HTS")%>%
+  mutate(across(4:5, currency)) %>%
+  mutate(across(6, function(x) x/100)) %>%
+  mutate(across(6, percent))
+
 hts_ue %>%
-  kable("latex", booktabs=T, longtable=T) %>%
-  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+  select(-c(fundingagency,program)) %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names = c("Mechanism", budg_ex_cols[1:3])) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
+  pack_rows(index = ordered_table(hts_ue, "fundingagency")) %>%
+  column_spec(1, width="15em")
+
 ```
 # Care and Treatment (C&T)
 
@@ -208,27 +298,158 @@ One should review these specific mechanisms to ensure that the spending aligns w
 
 Use the C&T Program Area for any C&T expenditures, including those that contribute directly to MER indicators like TX_CURR and TX_NEW, but also A
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ct_ue <- get_program_specific(df_ue_indiv, programs="C&T")
+ct_ue <- get_program_specific(df_ue_indiv, programs="C&T")%>%
+  mutate(across(4:5, currency)) %>%
+  mutate(across(6, function(x) x/100)) %>%
+  mutate(across(6, percent))
+
 ct_ue %>%
-  kable("latex", booktabs=T, longtable=T) %>%
-  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+  select(-c(fundingagency,program)) %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names=c("Mechanism", budg_ex_cols[1:3])) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))%>%
+  pack_rows(index = ordered_table(ct_ue, "fundingagency")) %>%
+  column_spec(1, width="15em")
 ```
 # Orphans and Vulnerable Children (OVC)
 
 Funding for OVC is that attributed to the OVC beneficiary group when budgeting or doing expenditure reporting. It is also often aligned with the Socio-Economic program area. When triangulated with the MER indicator OVC_SERV, it is a measure of the cost of all (both active and graduated) children participating in the OVC program for that quarter. When using OVC financial data, keep in mind that a proportion of the funding could be also attributed to the DREAMS initiative, thereby inflating the overall budget going to OVC programming. Understanding the actual proportion going strictly to OVC and DREAMS can be helpful in lobbying for increases in OVC budgets (not including DREAMS) or in defending against any cuts, especially if DREAMS initiative funds make up a majority of the OVC budget.  
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ovc_ue <- get_program_specific(df_ue_indiv, programs="OVC")
+ovc_ue <- get_program_specific(df_ue_indiv, programs="OVC")%>%
+  mutate(across(4:5, currency)) %>%
+  mutate(across(6, function(x) x/100)) %>%
+  mutate(across(6, percent))
+
 ovc_ue %>%
-  kable("latex", booktabs=T, longtable=T) %>%
-  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+  select(-c(fundingagency,program)) %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names=c("Mechanism", budg_ex_cols[1:3], "OVC SERV")) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"),
+                font_size=9)%>%
+  pack_rows(index = ordered_table(ovc_ue, "fundingagency")) %>%
+  column_spec(1, width="15em")
 ```
 
 # Commodities
 USAID’s commodity mechanisms typically face challenging reviews given their size and scope. It is important to be able to explain and justify why a commodity-specific sub-program area budget was not executed within the 90-110\% range. Factors can include delays in shipping, COVID-19 program interruptions, and shifts in programmatic priorities. 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-df_comm <- psm_murder(df_fsd)
+df_comm <- psm_murder(df_fsd) %>%
+  mutate(across(4:5, currency)) %>%
+  mutate(across(6, function(x) x/100)) %>%
+  mutate(across(6, percent))
+  
 df_comm %>%
-  kable("latex", booktabs=T, longtable=T) %>%
+  select(-mech)%>%
+  kable("latex", booktabs=T, longtable=T, 
+        col.names=c("Program", "Sub-program", budg_ex_cols[1:3])) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))%>%
+  pack_rows(index = ordered_table(df_comm, "mech")) %>%
+  column_spec(2, width="15em")
+```
+# Human Resources for Health (HRH)
+## HRH in the context of expenditure data
+The chart below provides an OU-level overview on HRH information (HRH FTE, HRH individuals, HRH expenditure, and total expenditure). Most OUs report anywhere from 30-60\% of the total OU expenditure is for HRH, and HRH is one of PEPFAR’s top cost drivers. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+hrh_main <- gen_hrh_main(df_hrh, df_fsd)%>%
+  mutate(across(c(2,4,5), currency)) %>%
+  mutate(across(6, function(x) x/100)) %>%
+  mutate(across(6, percent))
+
+hrh_main %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names=c("Agency", "Annual FTE", "Count", "Actual Annual Spend", 
+                    "Total Expenditure", "HRH Percent Share")) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
+```
+
+## In-depth Expenditure Analysis of HRH Information
+In the chart below, we can see the breakdown of expenditure on HRH by ER category (Ancillary, Clinical, Other Staff, and Program Management (PM)) in `r params$ou`. Note: All Ancillary and Clinical Staff are Service Delivery and all Other and PM Staff are Non Service Delivery. Depending on the programmatic goals of a mechanism, it will be necessary to understand how this aligns with the staff breakdown. This information is presented at the agency level. 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+hrh_staff <- gen_staff(df_hrh)%>%
+  ungroup()%>%
+  mutate(across(c(2:16)[c(T, F)], currency)) %>%
+  mutate(across(c(3:17)[c(T, F)], function(x) x/100)) %>%
+  mutate(across(c(3:17)[c(T, F)], percent))
+
+hrh_cols <- c("Agency", "Actual Annual Spend", "Spend Share", "Annual FTE", "FTE Share")
+
+hrh_ancil <- hrh_staff %>%select(c(1, 2:5))
+hrh_clinic <- hrh_staff %>% select(c(1, 6:9))
+hrh_other <- hrh_staff %>% select(c(1, 10:13))
+hrh_pm <- hrh_staff %>% select(c(1, 14:17))
+
+hrh_ancil %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names=hrh_cols) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
+  add_header_above(c(" "=1, "HCW: Ancillary - SD"=4)) 
+
+hrh_clinic %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names=hrh_cols) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
+  add_header_above(c(" "=1, "HCW: Clinical - SD"=4)) 
+
+hrh_other %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names=hrh_cols) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
+  add_header_above(c(" "=1, "Other Staff - NSD"=4)) 
+
+hrh_pm %>%
+  kable("latex", booktabs=T, longtable=T,
+        col.names=hrh_cols) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
+  add_header_above(c(" "=1, "Program Management - NSD"=4)) 
+```
+## Comparing Tx_CURR to  Care and Treatment (C\&T) HRH FTE and Expenditures
+Given the importance of treatment programs to sustaining PEPFAR’s success, the chart below presents how C\&T-SD spending and FTE align with TX_CURR achievement.  While a direct link between the HRH and MER data is difficult to discern, it is important to reflect on how the balance of C\&T FTE aligns with treatment-related indicators. For example, a funding agency spending large amounts on C\&T with low achievement may require greater programmatic support. There is no ideal expenditure or total FTE that country teams should aim for, however you can make comparisons across agencies and mechanisms to better understand HRH investments that support Tx_CURR target achievement.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+hrh_mer <- gen_hrh_mer(df_hrh, msd_tgt) %>%
+  ungroup() %>%  
+  # select every other # between 2 and 10, and between 3 and 11
+  mutate(across(c(2:10)[c(T, F)], currency)) %>%
+  mutate(across(c(3:11)[c(T, F)], function(x) x/100)) %>%
+  mutate(across(c(3:11)[c(T, F)], percent,digits=0))
+
+hrh_mer_cols <- c("Agency", "Actual Annual Spend", "Spend Share", "Annual FTE", 
+                  "FTE Share", 
+                  "Actual Annual Spend", "Spend Share", "Annual FTE","FTE Share",
+                  "Cumulative", "Achievement")
+
+hrh_mer %>%
+  kable("latex", booktabs=T, longtable=T, col.names=hrh_mer_cols) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"),
+                font_size=7)%>%
+  column_spec(c(3:9)[c(T, F)], width="3em") %>%
+  column_spec(c(2:10)[c(T, F)], width="5em") %>%
+  add_header_above(c(" "=1, "SD C&T"=3, "NSD C&T"=3, "Totals"=2)) %>%
+  row_spec(0, font_size=6) 
+```
+
+# APPENDIX: Mechanism Tables
+Below is a master table of all mechanism-level budget execution in this OU broken down by program area.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+### Mechanism Program Area table
+mechXpa <- gen_budget_exec(df_fsd, group_col = c("mech", "program"))%>%
+  mutate(across(c(4:5,6:8), currency)) %>%
+  mutate(across(c(6,9), percent, digits=0)) 
+
+
+mechXpa %>%
+  select(-fundingagency) %>%
+  kable("latex", booktabs=T, longtable=T, 
+        col.names=c("Mechanism", "Program", budg_ex_cols)) %>%
+  kable_styling(latex_options=c("hold_position", "striped", "repeat_header"),
+                font_size=7)%>%
+  column_spec(1, width="15em") %>%
+  column_spec(c(5,8),  width="3em") %>%
+  add_header_above(c(" "=2, "COP19 Performance"=3, "COP20 Performance"=3))%>%
+  row_spec(0, font_size=6) 
 ```

@@ -8,6 +8,10 @@ library(glamr)
 library(gophr)
 library(glue)
 library(tidyverse)
+library(extrafont)
+extrafont::font_import()
+extrafont::loadfonts(device = "win")
+
 
 ### Functions ==============================================
 fsd_cols <- c("record_type", "operatingunit", "countryname", "fundingagency", "fiscal_year",
@@ -55,6 +59,26 @@ gen_msd_tgt <- function(df){
   return(df_out)
 }
 
+gen_hrh <- function(df){
+  df_out<-df %>%
+    filter(fiscal_year=="2021") %>%
+    rename(operatingunit=operating_unit,
+           fundingagency=funding_agency )%>%
+    clean_agency()%>%
+    mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
+    mutate(annual_fte=as.numeric(annual_fte),
+           individual_count=as.numeric(individual_count),
+           annual_expenditure=as.numeric(annual_expenditure),
+           actual_annual_spend=as.numeric(actual_annual_spend),
+           annual_fringe=as.numeric(annual_fringe),)%>%
+    group_by(operatingunit,fundingagency,fiscal_year, mech_code, 
+             mech_name,interaction_type, program ,er_category)%>%
+    summarise_at(vars(annual_fte,individual_count,annual_expenditure,
+                      actual_annual_spend, annual_fringe), sum, na.rm = TRUE)%>%
+    ungroup()
+  return(df_out)
+}
+
 
 
 ### MAIN ====================================================
@@ -69,19 +93,26 @@ dir.create(log_dir, showWarning=F)
 ### Load data ==============================
 # Assign pointer to original df that is read in, so that gc() can find and dispose of it
 df_fsd_full <- si_path() %>% return_latest("Fin") %>% gophr::read_msd() 
-
 df_fsd <- fsd_selector(df_fsd_full, fsd_cols) %>%
+  # You MUST copy data.frame, else new pointer just points to the original 
   data.table::copy()
-rm(df_fsd_full)
-gc()
 
 df_msd_full <- si_path() %>% return_latest("OU_IM") %>% gophr::read_msd()
-# You MUST copy data.frame, else new pointer just points to the original 
 msd_tgt<- gen_msd_tgt(df_msd_full) %>%
   data.table::copy()
+
+df_hrh_full <- si_path()%>% return_latest("HRH")%>% gophr::read_msd()
+df_hrh <- gen_hrh(df_hrh_full) %>%
+  data.table::copy()
+
+# Remove full files and garbage collect to empty R memory
+rm(df_fsd_full)
 rm(df_msd_full)
+rm(df_hrh_full)
 gc()
 
 # Create temporary csv's for knitting
 write.csv(df_fsd, glue("{temp_dir}/df_fsd.csv"),  row.names = F)
 write.csv(msd_tgt, glue("{temp_dir}/msd_tgt.csv"), row.names = F)
+write.csv(df_hrh, glue("{temp_dir}/df_hrh.csv"), row.names = F)
+

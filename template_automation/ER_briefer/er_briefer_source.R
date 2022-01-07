@@ -2,6 +2,26 @@
 # Source code for ER briefer
 # 2.0 update: Removed code that will be placed in the markdown code or
 
+# install.packages("extrafont")
+# install.packages("fontcm")
+# library(extrafont)
+# font_install("fontcm")
+
+# remotes::install_version("Rttf2pt1", version = "1.3.8")
+
+# Generates an ordered dataframe for using as indices for grouping rows in Kable
+ordered_table <- function(dataframe, col){
+  output<- dataframe %>% count(across(col))%>%
+    pivot_wider(names_from=matches(col), values_from=n)
+  # uniq <- unique(dataframe)
+  # output <- rbind(label=uniq,
+  #                 count=sapply(uniq,function(x)sum(dataframe==x))) %>%
+  #   data.frame()%>%
+  #   slice(2)%>%
+  #   mutate_all(as.numeric)
+  return(output)
+}
+
 # Prep DF for 
 fsd_prep_budget_ex <- function(df){
   df_out <- df %>%   
@@ -189,8 +209,8 @@ gen_graph_tbl <- function(df) {
            ip_share=International/total*100) %>%
     pivot_longer(cols = International:Local, names_to = "partner_type")
 }
-  
-plot_local <- function(df){
+
+plot_local <- function(df, ou){
   ggplot(df, aes(fiscal_year, value)) +
     geom_col(aes( fill = partner_type))+
     scale_y_continuous(labels=label_number_si(),
@@ -199,29 +219,36 @@ plot_local <- function(df){
                                paste0(round(lp_share),
                                       "%"),
                                " "),
-                  vjust = 2))+
+                  vjust = 1.5),
+              size=3)+
 
     scale_fill_manual(values = c(siei_dgrey, old_rose)) +
     scale_alpha_identity() +
     labs(x = "Fiscal Year", y = "Expenditure", fill = "Partner Type",
-         title = glue("Expenditure by Partner Type: ou"),
+         title = glue("Expenditure by Partner Type: {ou}"),
          caption =  glue("Source: {source}-Excluding M&O and Commodities",
          )) +
     # si_style does NOT work in Rmarkdown
     # si_style_nolines()+
-    theme(legend.position="bottom")
+    theme(legend.position="bottom",
+          text=element_text(family="Goudy Old Style"),
+          panel.background = element_blank(),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank()
+          )
 }
+
 
 # glamr::load_secrets()
 # 
 # df_local<- gen_local(df_fsd)
 # local_table <- gen_local_table(df_local)
 # local_graph <- gen_graph_tbl(df_local)
-# plot_local(local_graph)
+# plot_local(local_graph, "Mozambique")
 
 
 ### Breakdown by Service Delivery ####################################
-gen_serv <- function(df){
+gen_serv <- function(df, ou){
   df %>% 
     glamr::remove_sch("SGAC")%>%
     filter(fundingagency=="USAID"|fundingagency=="CDC")%>%
@@ -257,18 +284,22 @@ gen_serv <- function(df){
                        position = "left", expand = c(.005, .005)) +
     scale_fill_manual(values = c(genoa,golden_sand,denim )) +
     geom_text(aes(y=cumulative, label = percent(share, 1)), 
-              position=position_stack(vjust=.8))+
+              position=position_stack(vjust=0.5),
+              size = 2)+
     
     scale_alpha_identity() +
     labs(x = "Fiscal Year", y = "Expenditure", fill = "Interaction Type",
-         title = glue("Expenditure by Interaction Type (Excluding Commodities): {params$ou}"),
+         title = glue("Expenditure by Interaction Type (Excluding Commodities): {ou}"),
          caption =  glue("Source: {source}",
          )) +
     # si_style_nolines()+
-    theme(legend.position="bottom")
+    theme(legend.position="bottom",
+          text=element_text(family="Goudy Old Style"),
+          panel.background = element_blank(),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank()
+          )
 }
-
-# gen_serv(df_budget_exec)
 
 ### HIV Testing  ####################################
 gen_ue_indiv <- function(fsd, msd){
@@ -299,15 +330,6 @@ get_program_specific<-function(df_ue_temp, ou="operatingunit",programs=c("HTS","
   return(df)
 }
 
-# df_ue_indiv <- gen_ue_indiv(fsd_tgt, msd_tgt)
-# hts_ue <- get_program_specific(df_ue_indiv, programs="HTS")
-# 
-# ### Treatment ####################################
-# hts_ue <- get_program_specific(df_ue_indiv, programs="C&T")
-# 
-# ### OVC ####################################
-# hts_ue <- get_program_specific(df_ue_indiv, programs="OVC")
-
 
 ### Commodities #################################### NO PREP FSD
 psm_murder<-function(df){
@@ -328,7 +350,111 @@ psm_murder<-function(df){
 
 # df_mozambique<-psm_murder(df_fsd)
 
-### HRH
+### HRH ======================================================================
+## First table
+gen_hrh_main <- function(df_hrh, df_fsd){
+  df_hrh1<-df_hrh%>%
+    group_by(operatingunit,fundingagency,fiscal_year,)%>%
+    summarise_at(vars(annual_fte,individual_count,actual_annual_spend), 
+                 sum, na.rm = TRUE)%>%
+    ungroup()
+  
+  df_fsd_temp <- df_fsd %>% 
+    filter(fiscal_year == "2021") %>%
+    group_by(operatingunit,fundingagency,fiscal_year, )%>%
+    summarise_at(vars(expenditure_amt), sum, na.rm = TRUE)%>%
+    ungroup()
+    
+  
+  hrh_fsd1<-left_join(df_hrh1,df_fsd_temp)%>%
+    select(-c(fiscal_year,operatingunit))%>%
+    adorn_totals("row",,,, -fundingagency)%>%
+    mutate(hrh_share=round(actual_annual_spend/expenditure_amt *100))
+  return(hrh_fsd1)
+}
+
+## Generate HRH staff breakdown table
+gen_staff <- function(df_hrh){
+  df_hrh%>%
+    dplyr::mutate(interaction_type=dplyr::case_when(interaction_type=="Service Delivery"~"SD",
+                                                    interaction_type=="Non Service Delivery"~"NSD",
+                                                    TRUE ~interaction_type))%>%
+    mutate(er_staff=glue("{er_category}-{interaction_type}"))%>%
+    group_by(operatingunit,fundingagency,fiscal_year,er_staff,)%>%
+    summarise_at(vars(actual_annual_spend,annual_fte), sum, na.rm = TRUE)%>%
+    ungroup%>%
+    pivot_longer(actual_annual_spend:annual_fte, names_to="key", values_to="value")%>%
+    pivot_wider(names_from = c(er_staff, key), 
+                values_from = value,
+                values_fill=0)%>%
+
+    select(-c(fiscal_year,operatingunit))%>%
+    adorn_totals("row",,,, -fundingagency,)%>%
+    dplyr::rowwise() %>%
+    mutate(total_spend=sum(across(matches("annual_spend"), na.rm = T)))%>%
+    mutate(total_fte=sum(across(matches("annual_fte"), na.rm = T)))%>%
+    mutate( #pivot to get totals and shares
+      other_staff_spend_share=round(`Other Staff-NSD_actual_annual_spend`/total_spend*100) ,
+      other_staff_fte_share=round(`Other Staff-NSD_annual_fte`/total_fte*100) ,
+      pm_spend_share=round(`Program Management-NSD_actual_annual_spend`/total_spend*100),
+      pm_fte_share=round(`Program Management-NSD_annual_fte` /total_fte*100) ,
+      hcw_clinial_spend_share=round(`HCW: Clinical-SD_actual_annual_spend`/total_spend*100) ,
+      hcw_clinical_fte_share=round(`HCW: Clinical-SD_annual_fte`/total_fte*100) ,
+      hcw_ancillary_spend_share=round(`HCW: Ancillary-SD_actual_annual_spend`/total_spend*100) ,
+      hcw_ancillary_fte_share=round(`HCW: Ancillary-SD_annual_fte`/total_fte*100))%>% 
+    select(-c(total_spend,total_fte,))%>%
+    
+    dplyr::relocate(pm_spend_share, .after = `Program Management-NSD_actual_annual_spend`)%>%
+    dplyr::relocate(pm_fte_share, .after = `Program Management-NSD_annual_fte`)%>%
+    dplyr::relocate(other_staff_spend_share, .after = `Other Staff-NSD_actual_annual_spend`)%>%
+    dplyr::relocate(other_staff_fte_share, .after = `Other Staff-NSD_annual_fte`)%>%
+    dplyr::relocate(hcw_clinial_spend_share, .after = `HCW: Clinical-SD_actual_annual_spend`)%>%
+    dplyr::relocate(hcw_clinical_fte_share, .after = `HCW: Clinical-SD_annual_fte`)%>%
+    dplyr::relocate(hcw_ancillary_spend_share, .after = `HCW: Ancillary-SD_actual_annual_spend`)%>%
+    dplyr::relocate(hcw_ancillary_fte_share, .after = `HCW: Ancillary-SD_annual_fte`)
+} 
+
+gen_hrh_mer <- function(df_hrh, df_msd){
+  df_hrh3<-df_hrh%>%
+    dplyr::mutate(interaction_type= dplyr::case_when(interaction_type == "Service Delivery"~"SD",
+                                                     interaction_type == "Non Service Delivery"~"NSD",
+                                                     TRUE ~interaction_type))%>%
+    mutate(pa_level=glue("{interaction_type}-{program}"))%>%
+    group_by(fundingagency,operatingunit,fiscal_year,pa_level)%>%
+    summarise_at(vars(actual_annual_spend,annual_fte,), sum, na.rm = TRUE)%>%
+    ungroup%>%
+    pivot_longer(actual_annual_spend:annual_fte, names_to="key", values_to="value")%>%
+    pivot_wider(names_from = c(pa_level, key), 
+                values_from = value,
+                values_fill=0)%>%
+    dplyr::rowwise() %>%
+    mutate(total_spend=sum(across(matches("annual_spend"), na.rm = T)))%>%
+    mutate(total_fte=sum(across(matches("annual_fte"), na.rm = T)))%>%
+    mutate( #pivot to get totals and shares
+      sd_ct_spend_share=round(`SD-C&T_actual_annual_spend`/total_spend*100) ,
+      sd_ct_fte_share=round(`SD-C&T_annual_fte`/total_fte*100),
+      nsd_ct_spend_share=round(`NSD-C&T_actual_annual_spend`/total_spend*100) ,
+      nsd_ct_fte_share=round(`NSD-C&T_annual_fte`/total_fte*100))%>% 
+    
+    select(fiscal_year, operatingunit,fundingagency,`SD-C&T_actual_annual_spend`,
+           sd_ct_spend_share,`SD-C&T_annual_fte`,sd_ct_fte_share,`NSD-C&T_actual_annual_spend`,
+           nsd_ct_spend_share,`NSD-C&T_annual_fte`, nsd_ct_fte_share)
+  
+  df_msd2<-df_msd%>%
+    filter(indicator=="TX_CURR")%>%
+    mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
+    group_by(fiscal_year,operatingunit,fundingagency,indicator)%>%
+    summarise_at(vars(targets,cumulative), sum, na.rm=TRUE)%>%
+    ungroup()%>%
+    mutate(achievement=round(cumulative/targets*100))%>%
+    select(-c(targets,indicator))
+  
+  # final MER and HRH join
+  df_merhrh<-full_join(df_hrh3,df_msd2)%>%
+    mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
+    select(-c(fiscal_year,operatingunit))
+  return(df_merhrh)
+}
 
 ### Mechanism Program Area table
 # mechXpa <- gen_budget_exec(df_fsd, group_col = c("mech", "program"))
