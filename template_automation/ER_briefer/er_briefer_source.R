@@ -9,16 +9,23 @@
 
 # remotes::install_version("Rttf2pt1", version = "1.3.8")
 
+agency_lvls <- c("USAID", "CDC", "AF", "DoD","EAP","EUR","HRSA","PC","PRM",
+                 "SAMHSA","SGAC","WHA","Other")
+be_order_cols <- c("expenditure_amt_2020", "cop_budget_total_2020", "budget_execution_2020",
+                  "expenditure_amt_2021", "cop_budget_total_2021", "budget_execution_2021")
+
 # Generates an ordered dataframe for using as indices for grouping rows in Kable
-ordered_table <- function(dataframe, col){
-  output<- dataframe %>% count(across(col))%>%
-    pivot_wider(names_from=matches(col), values_from=n)
-  # uniq <- unique(dataframe)
-  # output <- rbind(label=uniq,
-  #                 count=sapply(uniq,function(x)sum(dataframe==x))) %>%
-  #   data.frame()%>%
-  #   slice(2)%>%
-  #   mutate_all(as.numeric)
+ordered_table <- function(df, col){
+  # output<- dataframe %>% count(across(col))%>%
+  #   pivot_wider(names_from=matches(col), values_from=n)
+  
+  output <- df %>% 
+    group_by(!!! rlang::syms(col)) %>% 
+    count() %>%
+    arrange(factor(!!! rlang::syms(col), levels= agency_lvls), 
+            desc= (!!! rlang::syms(col))) %>%
+    pivot_wider(names_from = (!!! rlang::syms(col)), values_from = n)
+  
   return(output)
 }
 
@@ -69,12 +76,12 @@ gen_budget_exec <- function(df, group_col = NA){
     }
   }
   
-  
   df_out <-df %>%
     dplyr::filter(fiscal_year=="2020" | fiscal_year=="2021")%>%
     dplyr::select(group_cols) %>%
-    mutate(fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
-    group_by_(.dots = group_by_cols)%>%
+    
+    #### changed from group_by_ to group_by_at
+    group_by_at(group_by_cols)%>%
     summarise_at(vars(cop_budget_total,expenditure_amt), sum, na.rm = TRUE)%>%
     dplyr::mutate(budget_execution=percent_clean(expenditure_amt,cop_budget_total))%>%
     ungroup() %>%
@@ -82,10 +89,9 @@ gen_budget_exec <- function(df, group_col = NA){
     pivot_wider(names_from = fiscal_year,
                 values_from = cop_budget_total:budget_execution, 
                 values_fill = 0)%>%
-    dplyr::relocate(expenditure_amt_2020, .before = cop_budget_total_2020) %>%
-    dplyr::relocate(expenditure_amt_2021, .before = cop_budget_total_2021) %>%
-    dplyr::relocate(budget_execution_2021, .after = cop_budget_total_2021)%>%
-    dplyr::relocate(budget_execution_2020, .after = cop_budget_total_2020)
+    dplyr::select(c(head(group_by_cols,-1), be_order_cols)) %>%
+    #mutate(fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
   return(df_out)
 }
 
@@ -94,7 +100,8 @@ progs<-c("HTS", "C&T","OVC")
 gen_fsd_tgt <- function(df){
   df_out <- df %>% 
     filter(fiscal_year=="2021")%>%
-    mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    # mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
     dplyr::mutate(program = dplyr::case_when(beneficiary == "OVC"~"OVC", 
                                              TRUE ~program))%>%
     group_by(operatingunit,fundingagency,fiscal_year, mech_code, mech_name, 
@@ -113,7 +120,8 @@ gen_fsd_tgt <- function(df){
 gen_ue <- function(fsd_tgt, msd_tgt){
   #join datasets together 
   df_ue<-left_join(fsd_tgt, msd_tgt) %>%
-    mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    # mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
     group_by(operatingunit,fundingagency,fiscal_year, mech_code, mech_name, primepartner,indicator)%>%
     pivot_longer(expenditure_amt:cop_budget_total,
                  names_to ="financial",
@@ -254,7 +262,8 @@ gen_serv <- function(df, ou){
     filter(fundingagency=="USAID"|fundingagency=="CDC")%>%
     filter(!fiscal_year=="2022")%>%
     dplyr::select (c(fundingagency,interaction_type, fiscal_year,expenditure_amt))%>%
-    mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
+    # mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
     group_by(fundingagency, interaction_type, fiscal_year)%>% 
     summarise(across(expenditure_amt, sum, na.rm = TRUE)) %>% 
     ungroup() %>%
@@ -321,7 +330,8 @@ gen_ue_indiv <- function(fsd, msd){
     relocate(mech, .before= expenditure_amt)%>%
     select(operatingunit,fundingagency,program,mech,
            expenditure_amt, cop_budget_total, budget_execution,
-           HTS_TST, HTS_TST_POS, TX_CURR, TX_NEW, OVC_SERV)
+           HTS_TST, HTS_TST_POS, TX_CURR, TX_NEW, OVC_SERV) %>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
   
   return(df_ue_indiv)
 }
@@ -367,7 +377,7 @@ gen_hrh_main <- function(df_hrh, df_fsd){
   
   df_fsd_temp <- df_fsd %>% 
     filter(fiscal_year == "2021") %>%
-    group_by(operatingunit,fundingagency,fiscal_year, )%>%
+    group_by(operatingunit,fundingagency,fiscal_year)%>%
     summarise_at(vars(expenditure_amt), sum, na.rm = TRUE)%>%
     ungroup()
     
@@ -471,7 +481,8 @@ gen_hrh_mer <- function(df_hrh, df_msd){
   
   df_msd2<-df_msd%>%
     filter(indicator=="TX_CURR")%>%
-    mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
+    # mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
     group_by(fiscal_year,operatingunit,fundingagency,indicator)%>%
     summarise_at(vars(targets,cumulative), sum, na.rm=TRUE)%>%
     ungroup()%>%
@@ -480,7 +491,8 @@ gen_hrh_mer <- function(df_hrh, df_msd){
   
   # final MER and HRH join
   df_merhrh<-full_join(df_hrh3,df_msd2)%>%
-    mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
+    # mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
     select(-c(fiscal_year,operatingunit))
   return(df_merhrh)
 }
