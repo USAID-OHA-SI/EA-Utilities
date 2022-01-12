@@ -41,6 +41,9 @@ fsd_selector <- function(df, cols) {
     dplyr::select(cols) %>%
     glamr::remove_mo() %>%
     glamr::clean_agency()%>%
+    # Changes USAID/WCF fundingagency categories to "USAID" 
+    dplyr::mutate(fundingagency=dplyr::case_when(fundingagency== "WCF"~"USAID", 
+                                                 TRUE ~fundingagency))%>%
     ##concatenate mech id and mech name
     dplyr::mutate( mech = paste(mech_code,"-", mech_name))
   return(df_out)
@@ -54,6 +57,9 @@ gen_msd_tgt <- function(df){
     filter(standardizeddisaggregate=="Total Numerator")%>%
     filter(indicator %in% indics)%>%
     clean_agency()%>%
+    # Changes USAID/WCF fundingagency categories to "USAID" 
+    dplyr::mutate(fundingagency=dplyr::case_when(fundingagency== "WCF"~"USAID", 
+                                                 TRUE ~fundingagency))%>%
     mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
     group_by(operatingunit,fundingagency,fiscal_year, mech_code, mech_name, 
              primepartner,indicator) %>% 
@@ -71,12 +77,16 @@ gen_msd_tgt <- function(df){
   return(df_out)
 }
 
+
 gen_hrh <- function(df){
   df_out<-df %>%
     filter(fiscal_year=="2021") %>%
     rename(operatingunit=operating_unit,
-           fundingagency=funding_agency )%>%
+           fundingagency=funding_agency_fing)%>%
     clean_agency()%>%
+    # Changes USAID/WCF fundingagency categories to "USAID" 
+    dplyr::mutate(fundingagency=dplyr::case_when(fundingagency== "WCF"~"USAID", 
+                                                 TRUE ~fundingagency))%>%
     mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
     mutate(annual_fte=as.numeric(annual_fte),
            individual_count=as.numeric(individual_count),
