@@ -18,10 +18,11 @@ library(tameDP)
 library(gophr)
 library(devtools)
 
+#add Google drive code (possibly)
 
 #COP22 FAST Functions
 
-agency_category<-function(df){
+agency_category_fast<-function(df){
   df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
     mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
                                       ifelse(`Agency Category` == "USAID/WCF", "USAID",
@@ -31,10 +32,12 @@ agency_category<-function(df){
 }
 
 
+
 #creating intervention function based on the SCM of the FAST
 FAST_Intervention<-function(df){
   #nested read_csv. Can be removed and run separately
-  df<-read_xlsx(df,"Standard COP Matrix-R", skip=3)
+  df<-read_xlsx("C:/Users/jmontespenaloza/Documents/FASTS/Nigeria_COP22_FAST_V1.xlsx", 
+                "Standard COP Matrix-R", skip=3)
   
   # Drop columns you don't need and rename  
   df<- df %>% dplyr::select( -c('Global','Prime Partner DUNS','Award Number',
@@ -54,17 +57,15 @@ FAST_Intervention<-function(df){
                   "COP Budget Pipeline" = `Applied Pipeline Amount`) %>% 
     
     dplyr::mutate(`Data Stream`="FSD")   
-  
+  glimpse(df)
   #Convert columns into characters and numeric
   df<-df%>%
-    #dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`),as.character(df)) 
-    dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`)) %>% 
-    dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`)) %>% 
-    dplyr::mutate_if(is.double, as.numeric) %>% 
+    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
+    #dplyr::mutate_if(is.double, as.numeric) %>% 
     
     #remove N/A's
     #Drop all rows without an OU specified 
-    drop_na('Operating Unit')
+    df <- df %>%  drop_na('Operating Unit')
   
   
   #replace NAs with 0s
@@ -72,7 +73,7 @@ FAST_Intervention<-function(df){
     mutate_at(vars(`COP Budget New Funding`:`Total Planned Funding`),~replace_na(.,0))
   
   #Add in agency category column to group agencies
-  df<-df %>% agency_category()
+  df<-df %>% agency_category_fast()
   
   #recode values to match naming in Financial Integrated Dataset
   df<- df %>%  dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery")) %>%
