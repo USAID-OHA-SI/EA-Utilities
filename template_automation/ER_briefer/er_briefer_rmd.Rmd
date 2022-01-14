@@ -49,28 +49,36 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r r-setup, include=FALSE}
-library(extrafont)
-library(glitr)
-library(scales)
-library(glamr)
-library(gophr)
+######### UNCOMMENT if you wish to run the RMD file as standalone, without iterator
+######### NOTE: You need to have created the temp files via the iterator first for
+#########       this to read in the correct csv's
+# library(extrafont)
+# library(glitr)
+# library(scales)
+# library(glamr)
+# library(gophr)
+# 
+# library(janitor)
+# library(kableExtra)
+# library(glue)
+# library(tidyverse)
+# library(formattable)
+# library(pander)
+# 
+# ## IMPORTANT NOTE: set working directory to Source File for best results
+# # Below code sets working directory to source file.
+# setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# 
+# temp_dir <- "temp"
+# git_dir <- "C:/Users/davidsong/Desktop/USAID"
+# git_src <- glue("{git_dir}/GitHub/stacks-of-hondos/scripts/utilities.R")
+# source(git_src)
+# source("er_briefer_source.R")
 
-library(janitor)
-library(kableExtra)
-library(glue)
-library(tidyverse)
-library(formattable)
-library(pander)
-
-temp_dir <- "temp"
-home_dir <- "C:/Users/davidsong/Desktop/USAID"
-git_src <- glue("{home_dir}/GitHub/stacks-of-hondos/scripts/utilities.R")
-source(git_src)
-source("er_briefer_source.R")
-
-df_fsd_full <- read_csv(glue("{temp_dir}/df_fsd.csv"))
-df_msd_full <- read_csv(glue("{temp_dir}/msd_tgt.csv"))
-df_hrh_full <- read_csv(glue("{temp_dir}/df_hrh.csv"))
+# df_fsd_full <- read_csv(glue("{temp_dir}/df_fsd.csv"))
+# df_msd_full <- read_csv(glue("{temp_dir}/msd_tgt.csv"))
+# df_hrh_full <- read_csv(glue("{temp_dir}/df_hrh.csv"))
+################################################################################
 
 df_fsd <- df_fsd_full %>%
   dplyr::filter(operatingunit == params$ou)

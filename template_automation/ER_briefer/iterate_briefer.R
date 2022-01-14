@@ -4,28 +4,42 @@
 # Date: 2022/01/04
 
 ### Libraries ===============================================
+library(scales)
+library(glitr)
 library(glamr)
 library(gophr)
+
+library(janitor)
 library(glue)
 library(tidyverse)
 library(googledrive)
+
+library(formattable)
+library(kableExtra)
+library(pander)
 library(extrafont)
 extrafont::font_import(prompt=F, pattern="GOUDOS.TTF")
 extrafont::loadfonts(device = "win")
 
-home_dir <- "C:/Users/davidsong/Desktop/USAID"
-uploader_path <- "/GitHub/EA-Utilities/upload_dir_to_gdrive.R"
-source(glue("{home_dir}{uploader_path}"))
+### Set Paths to download correct sources ====================================
+# Path where you want to save your PDF outputs, log files, and temp files
+working_dir <- "C:/Users/davidsong/Desktop/USAID/TEST"
 
-### Global ==================================================
-# Google Drive directory
+# Path where GitHub folder can be found
+git_dir <- "C:/Users/davidsong/Desktop/USAID"
+
+# Set Google Drive directory (destination)
 drive_path <- "1aIcQwJqHmecUCx11r6AWnUKwsUyse0WE"
 
-# Local Directory names
-temp_dir <- "temp"
+# Set local directory names for Outputs and Log files
 output_dir <- "output"
 log_dir <- "logs"
 
+# Manually set list of OUs to subset (list of names or of numeric index positions)
+# Note: Only use if you want to subset; otherwise leave it an empty list
+ou_choice <- c()  # ex. c(1:5) or c("Angola", "Asia Region", "Cameroon")
+
+### Global =====================================================================
 fsd_cols <- c("record_type", "operatingunit", "countryname", "fundingagency", "fiscal_year",
               "primepartner", "mech_code", "mech_name", "program", "sub_program", 
               "interaction_type", "beneficiary","cop_budget_total", "expenditure_amt")
@@ -101,13 +115,25 @@ gen_hrh <- function(df){
   return(df_out)
 }
 
+### Souce in some additional functions
+# Source in gdrive uploader function and utilities functions
+source(glue("{git_dir}/GitHub/EA-Utilities/upload_dir_to_gdrive.R"))
+source(glue("{git_dir}/GitHub/stacks-of-hondos/scripts/utilities.R"))
 
+# Path of the iterate_briefer.R file
+src_path <- dirname(rstudioapi::getSourceEditorContext()$path)
+source(glue("{src_path}/er_briefer_source.R"))
 
 ### MAIN ====================================================
+# Add path to where folders should be placed
+output_dir <- glue("{working_dir}/{output_dir}")
+log_dir <- glue("{working_dir}/{log_dir}")
+temp_dir <- glue("{working_dir}/temp")
+
 # Build necessary directories if they are not present
-dir.create(temp_dir, showWarning=F)
 dir.create(output_dir, showWarning=F)
 dir.create(log_dir, showWarning=F)
+dir.create(temp_dir, showWarning=F)
 
 ### Load data ==============================
 # Assign pointer to original df that is read in, so that gc() can find and dispose of it
@@ -128,20 +154,27 @@ df_hrh <- gen_hrh(df_hrh_full) %>%
 ou <- unique(df_fsd$operatingunit)
 # ou <- append(ou, "Central Mechanisms")
 
+# Subsets OUs if user chooses to subset OUs
+if(!is.null(ou_choice)){
+  if(is.character(ou_choice)){ou <- ou_choice}
+  else{ou <- ou[ou_choice]}
+}
+
 # Remove full files and garbage collect to empty R memory
 rm(df_fsd_full)
 rm(df_msd_full)
 rm(df_hrh_full)
 gc()
 
-# Create temporary csv's for knitting
-write.csv(df_fsd, glue("{temp_dir}/df_fsd.csv"),  row.names = F)
-write.csv(msd_tgt, glue("{temp_dir}/msd_tgt.csv"), row.names = F)
-write.csv(df_hrh, glue("{temp_dir}/df_hrh.csv"), row.names = F)
+# # Create temporary csv's for knitting
+# write.csv(df_fsd, glue("{temp_dir}/df_fsd.csv"),  row.names = F)
+# write.csv(msd_tgt, glue("{temp_dir}/msd_tgt.csv"), row.names = F)
+# write.csv(df_hrh, glue("{temp_dir}/df_hrh.csv"), row.names = F)
 
-# ######## REMOVE FOR THE REAL DEAL ########################
-# for test, just choose 5 ous
-ou <- ou[1:5]
+df_fsd_full <- df_fsd %>% data.table::copy()
+df_msd_full <- msd_tgt %>% data.table::copy()
+df_hrh_full <- df_hrh %>% data.table::copy()
+
 ##########################################################
 ### Iterate ============================================
 reports <- tibble(
@@ -153,13 +186,13 @@ reports %>%
   select(output_file = filename, params) %>%
   # https://stackoverflow.com/questions/56606299/in-rstudio-knit-always-works-but-rmarkdownrender-fails-on-second-run-bu
   pwalk(rmarkdown::render, 
-        input = "er_briefer_rmd.Rmd", 
+        input = glue("{src_path}/er_briefer_rmd.Rmd"), 
         output_dir = glue("{output_dir}/"),
         intermediates_dir = temp_dir)
 
 ### Move log files elsewhere, to avoid cluttering working directory
 # selects files in current working directory
-curr_files <- list.files()
+curr_files <- list.files(src_path)
 curr_files <- curr_files[str_detect(curr_files, ".log")]
 new_log_loc <- paste0(log_dir,sep="/", curr_files)
 file.rename(from = curr_files,
