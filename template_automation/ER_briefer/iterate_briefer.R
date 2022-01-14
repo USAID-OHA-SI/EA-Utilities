@@ -25,7 +25,7 @@ drive_path <- "1aIcQwJqHmecUCx11r6AWnUKwsUyse0WE"
 temp_dir <- "temp"
 output_dir <- "output"
 log_dir <- "logs"
-### Functions ==============================================
+
 fsd_cols <- c("record_type", "operatingunit", "countryname", "fundingagency", "fiscal_year",
               "primepartner", "mech_code", "mech_name", "program", "sub_program", 
               "interaction_type", "beneficiary","cop_budget_total", "expenditure_amt")
@@ -34,7 +34,7 @@ msd_cols <- c("operatingunit", "countryname", "fundingagency", "fiscal_year",
               "standardizeddisaggregate", "cumulative", "targets")
 indics<-c("HTS_TST","HTS_TST_POS", "TX_CURR", "TX_NEW","OVC_SERV")
 
-
+### Functions ==============================================
 # universal prep_fsd
 fsd_selector <- function(df, cols) {
   df_out <- df %>% 
@@ -111,7 +111,7 @@ dir.create(log_dir, showWarning=F)
 
 ### Load data ==============================
 # Assign pointer to original df that is read in, so that gc() can find and dispose of it
-df_fsd_full <- si_path() %>% return_latest("Fin") %>% gophr::read_msd() 
+df_fsd_full <- si_path() %>% return_latest("Fin") %>% gophr::read_msd()
 df_fsd <- fsd_selector(df_fsd_full, fsd_cols) %>%
   # You MUST copy data.frame, else new pointer just points to the original 
   data.table::copy()

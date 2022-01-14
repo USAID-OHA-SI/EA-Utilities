@@ -212,7 +212,9 @@ gen_graph_tbl <- function(df) {
     summarise_at(vars(expenditure_amt), sum, na.rm = TRUE)%>%
     pivot_wider(names_from = partner_type_usaid_adjusted, 
                 values_from = expenditure_amt) %>%
-    mutate(total = Local+International, #pivot to get totals and shares
+    
+    # must ignore NA to sum correctly
+    mutate(total = rowSums(across(c(Local, International)), na.rm=TRUE), #pivot to get totals and shares
            lp_share = Local / total*100,
            ip_share=International/total*100) %>%
     pivot_longer(cols = International:Local, names_to = "partner_type")
@@ -270,8 +272,8 @@ gen_serv <- function(df, ou){
     
     pivot_wider(names_from = interaction_type, values_from = expenditure_amt)%>%
     
-    ##### MISSING PM AND SD/NSD are named incorrectly in code
-    mutate(total = NSD+SD+PM, #pivot to get totals and shares
+    # Must ignore NA in order to sum correctly and generate numbers
+    mutate(total = rowSums(across(c(NSD, SD, PM)), na.rm=TRUE), #pivot to get totals and shares
            nsd_share=NSD/total ,
            sd_share = SD / total ,
            pm_share=PM/total)%>%
@@ -286,6 +288,7 @@ gen_serv <- function(df, ou){
                            TRUE ~as.numeric(interaction_type)))%>%
     select(fundingagency,fiscal_year,interaction_type,cumulative,total,share) %>%
     
+    # Plot
     ggplot(aes(fiscal_year,cumulative)) + #can add value to geom_col-use cumulative sum
     geom_col(aes(y = cumulative, fill = fct_rev(interaction_type))) +
     facet_wrap("fundingagency", scales='free_x')+
@@ -413,21 +416,22 @@ gen_staff <- function(df_hrh){
   
   
   # https://stackoverflow.com/questions/45857787/adding-column-if-it-does-not-exist
-  full_staff_cols <- c("Other Staff-NSD_actual_annual_spend",
+  full_staff_cols <- c("HCW: Clinical-SD_actual_annual_spend",
+                       "HCW: Clinical-SD_annual_fte",
+                       "HCW: Ancillary-SD_actual_annual_spend",
+                       "HCW: Ancillary-SD_annual_fte",
+                       "Other Staff-NSD_actual_annual_spend",
                        "Other Staff-NSD_annual_fte",
                        "Program Management-NSD_actual_annual_spend",
-                       "Program Management-NSD_annual_fte",
-                       "HCW: Clinical-SD_actual_annual_spend",
-                       "HCW: Clinical-SD_annual_ft",
-                       "HCW: Ancillary-SD_actual_annual_spend",
-                       "HCW: Ancillary-SD_annual_fte"
+                       "Program Management-NSD_annual_fte"
                        )
   
   df_hrh_mod <- fncols(df_hrh_mod, full_staff_cols)
-
-
+    
   df_hrh_mod %>%
-    select(-c(fiscal_year,operatingunit))%>%
+    # Correctly order columns
+    select(c("fundingagency", full_staff_cols)) %>%
+    #select(-c(fiscal_year,operatingunit))%>%
     adorn_totals("row",,,, -fundingagency,)%>%
     dplyr::rowwise() %>%
     mutate(total_spend=sum(across(matches("annual_spend"), na.rm = T)))%>%
