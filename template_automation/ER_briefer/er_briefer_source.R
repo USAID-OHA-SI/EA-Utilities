@@ -101,7 +101,6 @@ gen_fsd_tgt <- function(df){
   df_out <- df %>% 
     filter(fiscal_year=="2021")%>%
     # mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
-    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
     dplyr::mutate(program = dplyr::case_when(beneficiary == "OVC"~"OVC", 
                                              TRUE ~program))%>%
     group_by(operatingunit,fundingagency,fiscal_year, mech_code, mech_name, 
@@ -109,7 +108,8 @@ gen_fsd_tgt <- function(df){
     summarise_at(vars(cop_budget_total, expenditure_amt), sum, na.rm = TRUE) %>% 
     ungroup()%>%
     filter(program %in% progs)%>%
-    mutate(budget_execution=round(expenditure_amt/cop_budget_total*100))
+    mutate(budget_execution=round(expenditure_amt/cop_budget_total*100)) %>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
   return(df_out)
 }
 
@@ -120,8 +120,6 @@ gen_fsd_tgt <- function(df){
 gen_ue <- function(fsd_tgt, msd_tgt){
   #join datasets together 
   df_ue<-left_join(fsd_tgt, msd_tgt) %>%
-    # mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
-    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
     group_by(operatingunit,fundingagency,fiscal_year, mech_code, mech_name, primepartner,indicator)%>%
     pivot_longer(expenditure_amt:cop_budget_total,
                  names_to ="financial",
@@ -170,7 +168,8 @@ gen_ue <- function(fsd_tgt, msd_tgt){
            |unit_expenditure_TST_POS>0 |cumulative_TST_POS>0
            |unit_expenditure_TX_CURR>0 |cumulative_TX_CURR >0 
            |unit_expenditure_TX_NEW>0| cumulative_TX_NEW  >0) %>%
-    select(fundingagency,mech:cumulative_TX_NEW)
+    select(fundingagency,mech:cumulative_TX_NEW) %>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
   
   return(df_ue)
 }
@@ -264,16 +263,15 @@ gen_serv <- function(df, ou){
     filter(fundingagency=="USAID"|fundingagency=="CDC")%>%
     filter(!fiscal_year=="2022")%>%
     dplyr::select (c(fundingagency,interaction_type, fiscal_year,expenditure_amt))%>%
-    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
-    # mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
     group_by(fundingagency, interaction_type, fiscal_year)%>% 
     summarise(across(expenditure_amt, sum, na.rm = TRUE)) %>% 
     ungroup() %>%
     
     pivot_wider(names_from = interaction_type, values_from = expenditure_amt)%>%
     
-    # Must ignore NA in order to sum correctly and generate numbers
-    mutate(total = rowSums(across(c(NSD, SD, PM)), na.rm=TRUE), #pivot to get totals and shares
+    ##### MISSING PM AND SD/NSD are named incorrectly in code
+    mutate(total = NSD+SD+PM, #pivot to get totals and shares
            nsd_share=NSD/total ,
            sd_share = SD / total ,
            pm_share=PM/total)%>%
@@ -288,7 +286,6 @@ gen_serv <- function(df, ou){
                            TRUE ~as.numeric(interaction_type)))%>%
     select(fundingagency,fiscal_year,interaction_type,cumulative,total,share) %>%
     
-    # Plot
     ggplot(aes(fiscal_year,cumulative)) + #can add value to geom_col-use cumulative sum
     geom_col(aes(y = cumulative, fill = fct_rev(interaction_type))) +
     facet_wrap("fundingagency", scales='free_x')+
@@ -310,8 +307,9 @@ gen_serv <- function(df, ou){
           panel.background = element_blank(),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank()
-          )
+    )
 }
+    
 
 ### HIV Testing  ####################################
 gen_ue_indiv <- function(fsd, msd){
@@ -486,12 +484,13 @@ gen_hrh_mer <- function(df_hrh, df_msd){
   df_msd2<-df_msd%>%
     filter(indicator=="TX_CURR")%>%
     # mutate( fundingagency = fct_relevel(fundingagency,"USAID","CDC"))%>%
-    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))%>%
     group_by(fiscal_year,operatingunit,fundingagency,indicator)%>%
     summarise_at(vars(targets,cumulative), sum, na.rm=TRUE)%>%
     ungroup()%>%
     mutate(achievement=round(cumulative/targets*100))%>%
-    select(-c(targets,indicator))
+    select(-c(targets,indicator)) %>%
+    arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
+    
   
   # final MER and HRH join
   df_merhrh<-full_join(df_hrh3,df_msd2)%>%

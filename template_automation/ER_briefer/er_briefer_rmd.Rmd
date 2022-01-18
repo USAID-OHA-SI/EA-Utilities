@@ -35,7 +35,7 @@ header-includes:
       \renewcommand{\headrulewidth}{0pt}}
 
 params:
-  ou: "Angola"
+  ou: "Burundi"
   fiscal_yr: 2021
       
 ---
@@ -74,7 +74,7 @@ knitr::opts_chunk$set(echo = FALSE)
 # git_src <- glue("{git_dir}/GitHub/stacks-of-hondos/scripts/utilities.R")
 # source(git_src)
 # source("er_briefer_source.R")
-
+# 
 # df_fsd_full <- read_csv(glue("{temp_dir}/df_fsd.csv"))
 # df_msd_full <- read_csv(glue("{temp_dir}/msd_tgt.csv"))
 # df_hrh_full <- read_csv(glue("{temp_dir}/df_hrh.csv"))
@@ -94,10 +94,10 @@ msd_tgt<- df_msd_full %>%
 df_hrh <- df_hrh_full %>%
   dplyr::filter(operatingunit == params$ou)
 
-rm(df_fsd_full)
-rm(df_msd_full)
-rm(df_hrh_full)
-gc()
+# rm(df_fsd_full)
+# rm(df_msd_full)
+# rm(df_hrh_full)
+# gc()
 
 ```
 \newpage
@@ -144,8 +144,8 @@ Country teams should review the budget execution (expenditure\/budget) broken do
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 ### Agency budget executio"n overview ####################################
 get_ou_agency_be<- gen_budget_exec(df_budget_exec) %>%
-  mutate(across(c(2:3,5:6), currency,digits=0)) %>%
-  mutate(across(c(4,7), percent,digits=0))
+  mutate(across(c(2:3,5:6), formattable::currency,digits=0)) %>%
+  mutate(across(c(4,7), formattable::percent,digits=0))
 
 budg_ex_cols <- c("Expenditure", "Budget", "Budget Execution",
                   "Expenditure", "Budget", "Budget Execution")
@@ -162,8 +162,8 @@ Below is a table of budget execution by program area.  At this more granular lev
 ```{r echo=FALSE}
 ### Budget execution by program area ####################################
 get_ou_pa<- gen_budget_exec(df_budget_exec, "program")%>%
-  mutate(across(c(3:4,6:7), currency, digits=0)) %>%
-  mutate(across(c(5,8), percent, digits=0))
+  mutate(across(c(3:4,6:7), formattable::currency, digits=0)) %>%
+  mutate(across(c(5,8), formattable::percent, digits=0))
 
 get_ou_pa %>%
   kable("latex",  booktabs=T, longtable=T,
@@ -192,8 +192,8 @@ get_ou_mechanism<-gen_budget_exec(df_budget_exec, "mech") %>%
   # Remove mechs with missing FY21 ER or budget data
   dplyr::filter(expenditure_amt_2021>0 | cop_budget_total_2021>0) %>%
   select(-fundingagency) %>%
-  mutate(across(c(2:3,5:6), currency,digits=0)) %>%
-  mutate(across(c(4,7), percent,digits=0))
+  mutate(across(c(2:3,5:6), formattable::currency,digits=0)) %>%
+  mutate(across(c(4,7), formattable::percent,digits=0))
 
 
 get_ou_mechanism %>%
@@ -209,16 +209,16 @@ get_ou_mechanism %>%
 # Unit Expenditure
 The table below shows unit expenditures (UEs) for all mechanisms in `r params$ou` that had **targets along the treatment cascade**. While UEs can be useful to inform assessment of program performance or efficiency, they are imperfect measures—particularly when comparing across mechanisms. It is important to note the following caveats\/considerations when discussing UEs: 
 
-* **\*\*\*Expenditure data represents PEPFAR expenditures only\*\*\***:  Expenditures for IMs that are 100\% PEPFAR funded will be a close proxy for the “cost” of services provided that are paid for by PEPFAR. However if an IM receives other sources of funding (or is “cost-shared” in some way)—e.g. MoH pays for facilities, staff; Global Fund pays for commodities; etc.—expenditures will not represent the full cost of services. SGAC’s activity-based costing and management efforts that have been implemented in some OUs seek to understand the full cost of an HIV program.
-* **\*\*\*Expenditure data—in it’s aggregate form—does not indicate the inputs provided by/scope of each partner\*\*\***: Some partners provide 100\% of the inputs required to achieve a given output while others may be funded to provide only a specific portion of the full service (e.g. providing TA for site-level service delivery; providing VMMC but not HTS component of full VMMC package).  In addition, some partners may have the mandate to serve hard-to-reach populations or locations, likely resulting in higher expenditures per result.
-* **\*\*\*Expenditure data represents IMs with different modalities\/programmatic models \& scopes\*\*\***: Different modalities\/programmatic models (e.g. Community vs facility models; local NGOs vs international organizations; private sector vs public sector; etc.) will have different cost structures related to the types\/number of inputs needed, whether PEPFAR is paying for the full or partial portion of services; quality\/effectiveness; and the scope of interventions conducted.  Similarly, there are some IMs that may have few targets (DSD or TA). However the primary SOW of the IM is not to achieve targets but perhaps some other activity, such as clinic renovation\/construction, policy advancement, technical assistance. These IMs will naturally have very high UEs because the IM does set targets, however that is a very small portion of the work plan's planned expenditure for the year.
-* **\*\*\*Expenditures will be different depending on how many years the IM has been operating\*\*\***: Start up and close out years have atypical expenditure patterns—that can be highlighted because of the cash-based accounting and other ER methodologies. For example, during start up, mechanisms may have significant one-time investment expenditures that are not amortized over time. Similarly, IMs in start-up or closeout may not be able\/are not planning to achieve many targets when compared to years when the IM is in year 3 or year 4. In both start up and close out years, we typically see high program management relative to implementation expenditures. In addition, due to both economies of scale and natural efficiency improvement, we tend to see expenditures per result achieved go down over time and as programs mature.
+* ***Expenditure data represents PEPFAR expenditures only***:  Expenditures for IMs that are 100\% PEPFAR funded will be a close proxy for the “cost” of services provided that are paid for by PEPFAR. However if an IM receives other sources of funding (or is “cost-shared” in some way)—e.g. MoH pays for facilities, staff; Global Fund pays for commodities; etc.—expenditures will not represent the full cost of services. SGAC’s activity-based costing and management efforts that have been implemented in some OUs seek to understand the full cost of an HIV program.
+* ***Expenditure data—in it’s aggregate form—does not indicate the inputs provided by/scope of each partner***: Some partners provide 100\% of the inputs required to achieve a given output while others may be funded to provide only a specific portion of the full service (e.g. providing TA for site-level service delivery; providing VMMC but not HTS component of full VMMC package).  In addition, some partners may have the mandate to serve hard-to-reach populations or locations, likely resulting in higher expenditures per result.
+* ***Expenditure data represents IMs with different modalities\/programmatic models \& scopes***: Different modalities\/programmatic models (e.g. Community vs facility models; local NGOs vs international organizations; private sector vs public sector; etc.) will have different cost structures related to the types\/number of inputs needed, whether PEPFAR is paying for the full or partial portion of services; quality\/effectiveness; and the scope of interventions conducted.  Similarly, there are some IMs that may have few targets (DSD or TA). However the primary SOW of the IM is not to achieve targets but perhaps some other activity, such as clinic renovation\/construction, policy advancement, technical assistance. These IMs will naturally have very high UEs because the IM does set targets, however that is a very small portion of the work plan's planned expenditure for the year.
+* ***Expenditures will be different depending on how many years the IM has been operating***: Start up and close out years have atypical expenditure patterns—that can be highlighted because of the cash-based accounting and other ER methodologies. For example, during start up, mechanisms may have significant one-time investment expenditures that are not amortized over time. Similarly, IMs in start-up or closeout may not be able\/are not planning to achieve many targets when compared to years when the IM is in year 3 or year 4. In both start up and close out years, we typically see high program management relative to implementation expenditures. In addition, due to both economies of scale and natural efficiency improvement, we tend to see expenditures per result achieved go down over time and as programs mature.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ### Unit Expenditure ####################################
 df_ue <- gen_ue(fsd_tgt, msd_tgt)%>%
-  mutate(across(c(3,5,7,9), currency,digits=0)) %>%
-  mutate(across(c(4,6,8,10), comma, digits=0))
+  mutate(across(c(3,5,7,9), formattable::currency,digits=0)) %>%
+  mutate(across(c(4,6,8,10), formattable::comma, digits=0))
 
 ue_cols <- c("", "Mechanism", "TST UE", "TST Results", "TST POS UE", "TST POS Results",
              "TX CURR UE", "TX CURR Results", "TX NEW UE", "TX NEW Results")
@@ -242,9 +242,9 @@ glamr::load_secrets()
 
 df_local<- gen_local(df_fsd)
 local_table <- gen_local_table(df_local) %>%
-  mutate(across(3:4, currency,digits=0)) %>%
+  mutate(across(3:4, formattable::currency,digits=0)) %>%
   mutate(across(5, function(x) x/100)) %>%
-  mutate(across(5, percent,digits=0)) %>%
+  mutate(across(5, formattable::percent,digits=0)) %>%
   mutate_at("mech", str_trunc, 70, "center")
 local_graph <- gen_graph_tbl(df_local)
 plot_local(local_graph, params$ou)
@@ -280,6 +280,7 @@ PM spend proportion is another area of focus for all countries.  Program managem
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=8,fig.height=5}
 gen_serv(df_budget_exec, params$ou)
+
 ```
 
 # HIV Testing Services (HTS)
@@ -290,9 +291,9 @@ Mechanisms focused on providing testing services, as well as those conducting de
 ```{r echo=FALSE}
 df_ue_indiv <- gen_ue_indiv(fsd_tgt, msd_tgt)
 hts_ue <- get_program_specific(df_ue_indiv, programs="HTS")%>%
-  mutate(across(4:5, currency,digits=0)) %>%
+  mutate(across(4:5, formattable::currency,digits=0)) %>%
   mutate(across(6:8, function(x) x/100)) %>%
-  mutate(across(6:8, percent,digits=0))
+  mutate(across(6:8, formattable::percent,digits=0))
 
 # out1<-ordered_table(hts_ue, "fundingagency")
 # 
@@ -322,9 +323,9 @@ Mechanisms focused on providing treatment services, or linkage to treatment, adh
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ct_ue <- get_program_specific(df_ue_indiv, programs="C&T")%>%
-  mutate(across(4:5, currency,digits=0)) %>%
+  mutate(across(4:5, formattable::currency,digits=0)) %>%
   mutate(across(6:8, function(x) x/100)) %>%
-  mutate(across(6:8, percent,digits=0))
+  mutate(across(6:8, formattable::percent,digits=0))
 
 ct_ue %>%
   select(-c(fundingagency,program)) %>%
@@ -344,9 +345,9 @@ Funding for OVC is attributed to the OVC beneficiary group when budgeting or doi
 ovc_ue <- get_program_specific(df_ue_indiv, programs="OVC")
 if(nrow(ovc_ue)!=0){
   ovc_ue <- ovc_ue %>%
-    mutate(across(4:5, currency,digits=0)) %>%
+    mutate(across(4:5, formattable::currency,digits=0)) %>%
     mutate(across(6:7, function(x) x/100)) %>%
-    mutate(across(6:7, percent,digits=0))
+    mutate(across(6:7, formattable::percent,digits=0))
 
   ovc_ue %>%
   select(-c(fundingagency,program)) %>%
@@ -368,9 +369,9 @@ USAID’s commodity mechanisms data can face significant scrutiny given their si
  
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 df_comm <- psm_murder(df_fsd) %>%
-  mutate(across(4:5, currency,digits=0)) %>%
+  mutate(across(4:5, formattable::currency,digits=0)) %>%
   mutate(across(6, function(x) x/100)) %>%
-  mutate(across(6, percent,digits=0))
+  mutate(across(6, formattable::percent,digits=0))
 
 df_comm %>%
   select(-mech)%>%
@@ -391,9 +392,9 @@ The table below provides an OU-level overview on HRH information (HRH Full Time 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 hrh_main <- gen_hrh_main(df_hrh, df_fsd)%>%
-  mutate(across(c(4,5), currency,digits=0)) %>%
+  mutate(across(c(4,5), formattable::currency,digits=0)) %>%
   mutate(across(6, function(x) x/100)) %>%
-  mutate(across(6, percent,digits=0)) %>%
+  mutate(across(6, formattable::percent,digits=0)) %>%
   arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
 
 
@@ -410,9 +411,9 @@ In the table below, we can see the breakdown of expenditure on HRH by ER categor
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 hrh_staff <- gen_staff(df_hrh)%>%
   ungroup()%>%
-  mutate(across(c(2:16)[c(T, F, F, F)], currency,digits=0)) %>%
+  mutate(across(c(2:16)[c(T, F, F, F)], formattable::currency,digits=0)) %>%
   mutate(across(c(3:17)[c(T, F)], function(x) x/100)) %>%
-  mutate(across(c(3:17)[c(T, F)], percent,digits=0)) %>%
+  mutate(across(c(3:17)[c(T, F)], formattable::percent,digits=0)) %>%
   arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
 
 hrh_cols <- c("Agency", "Actual Annual Spend", "Spend Share", "Annual FTE", "FTE Share")
@@ -422,13 +423,13 @@ hrh_ancil <- hrh_staff %>% select(c(1, 6:9))
 hrh_other <- hrh_staff %>% select(c(1, 10:13))
 hrh_pm <- hrh_staff %>% select(c(1, 14:17))
 
-hrh_ancil %>%
+hrh_clinic %>%
   kable("latex", booktabs=T, longtable=T,
         col.names=hrh_cols) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
   add_header_above(c(" "=1, "HCW: Clinical - SD"=4))
 
-hrh_clinic %>%
+hrh_ancil %>%
   kable("latex", booktabs=T, longtable=T,
         col.names=hrh_cols) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header")) %>%
@@ -453,10 +454,10 @@ It is possible to examine the HRH inventory data alongside MER results data, how
 hrh_mer <- gen_hrh_mer(df_hrh, msd_tgt) %>%
   ungroup() %>%
   # select every other # between 2 and 10, and between 3 and 11
-  mutate(across(c(2,6), currency,digits=0)) %>%
+  mutate(across(c(2,6), formattable::currency,digits=0)) %>%
   mutate(across(c(3:11)[c(T, F)], function(x) x/100)) %>%
-  mutate(across(c(3:11)[c(T, F)], percent,digits=0)) %>%
-  mutate(cumulative = comma(cumulative, digits=0)) %>%
+  mutate(across(c(3:11)[c(T, F)], formattable::percent,digits=0)) %>%
+  mutate(cumulative = formattable::comma(cumulative, digits=0)) %>%
   arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
 
 hrh_mer_cols <- c("Agency", "Actual Annual Spend", "Spend Share", "Annual FTE",
@@ -482,8 +483,8 @@ Below is a master table of all mechanism-level budget execution in this OU broke
 mechXpa <- gen_budget_exec(df_fsd, group_col = c("mech", "program"))%>%
   # Remove mechs with missing FY21 ER or budget data
   dplyr::filter(expenditure_amt_2021>0 | cop_budget_total_2021>0) %>%
-  mutate(across(c(4:5,6:8), currency,digits=0)) %>%
-  mutate(across(c(6,9), percent, digits=0))
+  mutate(across(c(4:5,6:8), formattable::currency,digits=0)) %>%
+  mutate(across(c(6,9), formattable::percent, digits=0))
 
 
 mechXpa %>%

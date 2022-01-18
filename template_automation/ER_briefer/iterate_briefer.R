@@ -36,8 +36,8 @@ output_dir <- "output"
 log_dir <- "logs"
 
 # Manually set list of OUs to subset (list of names or of numeric index positions)
-# Note: Only use if you want to subset; otherwise leave it an empty list
-ou_choice <- c()  # ex. c(1:5) or c("Angola", "Asia Region", "Cameroon")
+# Note: Only use if you want to subset; otherwise leave it an empty vector
+ou_choice <- c(1:5)  # ex. c(1:5) or c("Angola", "Asia Region", "Cameroon")
 
 ### Global =====================================================================
 fsd_cols <- c("record_type", "operatingunit", "countryname", "fundingagency", "fiscal_year",
@@ -86,8 +86,8 @@ gen_msd_tgt <- function(df){
                                              indicator    == "OVC_SERV"    ~"OVC",
                                              
                                              TRUE ~indicator))%>%
-    filter(!fundingagency=="DEDUP")%>%
-    dplyr::filter(targets>0)
+    filter(!fundingagency=="DEDUP") 
+  # %>% dplyr::filter(targets>0)
   return(df_out)
 }
 
@@ -138,16 +138,16 @@ dir.create(temp_dir, showWarning=F)
 ### Load data ==============================
 # Assign pointer to original df that is read in, so that gc() can find and dispose of it
 df_fsd_full <- si_path() %>% return_latest("Fin") %>% gophr::read_msd()
-df_fsd <- fsd_selector(df_fsd_full, fsd_cols) %>%
+df_fsd_temp <- fsd_selector(df_fsd_full, fsd_cols) %>%
   # You MUST copy data.frame, else new pointer just points to the original 
   data.table::copy()
 
 df_msd_full <- si_path() %>% return_latest("OU_IM") %>% gophr::read_msd()
-msd_tgt<- gen_msd_tgt(df_msd_full) %>%
+msd_tgt_temp<- gen_msd_tgt(df_msd_full) %>%
   data.table::copy()
 
 df_hrh_full <- si_path()%>% return_latest("HRH")%>% gophr::read_msd()
-df_hrh <- gen_hrh(df_hrh_full) %>%
+df_hrh_temp <- gen_hrh(df_hrh_full) %>%
   data.table::copy()
 
 # Select OUs
@@ -171,9 +171,9 @@ gc()
 # write.csv(msd_tgt, glue("{temp_dir}/msd_tgt.csv"), row.names = F)
 # write.csv(df_hrh, glue("{temp_dir}/df_hrh.csv"), row.names = F)
 
-df_fsd_full <- df_fsd %>% data.table::copy()
-df_msd_full <- msd_tgt %>% data.table::copy()
-df_hrh_full <- df_hrh %>% data.table::copy()
+df_fsd_full <- df_fsd_temp %>% data.table::copy()
+df_msd_full <- msd_tgt_temp %>% data.table::copy()
+df_hrh_full <- df_hrh_temp %>% data.table::copy()
 
 ##########################################################
 ### Iterate ============================================
@@ -201,6 +201,6 @@ file.rename(from = curr_files,
 
 # ##### Upload to Google Drive ##################################
 # ### UNCOMMENT THIS WHEN YOU WANT TO UPLOAD #####################
-load_secrets()
-
-upload_dir_to_gdrive(output_dir, drive_path)
+# load_secrets()
+# 
+# upload_dir_to_gdrive(output_dir, drive_path)
