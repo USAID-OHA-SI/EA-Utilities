@@ -31,7 +31,10 @@ agency_category_fast<-function(df){
     dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
 }
 
-
+interaction_type_fast <- function(df){
+  df<-df %>% dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery",
+                                          "NSD"= "Non Service Delivery"))
+}
 
 #creating intervention function based on the SCM of the FAST
 FAST_Intervention<-function(df){
@@ -76,8 +79,7 @@ FAST_Intervention<-function(df){
   df<-df %>% agency_category_fast()
   
   #recode values to match naming in Financial Integrated Dataset
-  df<- df %>%  dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery")) %>%
-    dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "NSD"= "Non Service Delivery"))
+  df<- df %>% interaction_type_fast() 
   
   return(df)
 }
@@ -137,7 +139,8 @@ FAST_CCA<-function(df){
 
 FAST_Initiative<-function(df){
   #nested read_csv. Can be removed and run separately
-  df<-read_xlsx(df,"Standard COP Matrix-R", skip=3)
+  df<-read_xlsx("C:/Users/jmontespenaloza/Documents/FASTS/Nigeria_COP22_FAST_V1.xlsx", 
+                "Standard COP Matrix-R", skip=3)
   #include columns of interest
   ####change to Deselect!!!!!!WARNING
   df<- df %>% dplyr::select('Planning Cycle','Operating Unit':'Partner Name', 'Mechanism Name':'Initiative', 
