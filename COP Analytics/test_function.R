@@ -58,9 +58,10 @@ FAST_Intervention<-function(df){
                   "Sub Beneficiary" = `Minor Beneficiary`,
                   "COP Budget New Funding" = `Total New Funding Sources`,
                   "COP Budget Pipeline" = `Applied Pipeline Amount`) %>% 
-    
+  
+    #create data stream  
     dplyr::mutate(`Data Stream`="FSD")   
-  glimpse(df)
+  
   #Convert columns into characters and numeric
   df<-df%>%
     dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
@@ -102,7 +103,7 @@ FAST_CCA<-function(df){
                   "Interaction Type" = `SD/NSD`,
                   "Beneficiary" = `Major Beneficiary`,
                   "Sub Beneficiary" = `Minor Beneficiary`) %>%    
-    
+  #create data stream  
     dplyr::mutate(`Data Stream`="FAST Cross Cutting Attribution")
   
   #remove N/A's
@@ -117,22 +118,18 @@ FAST_CCA<-function(df){
   df <- df %>% pivot_longer(cols = `Water`:`Key Populations: SW`,
                             names_to = "Cross-Cutting Attribution",
                             values_to = "Total Planned Funding")
-  glimpse(df)
+
   #Convert columns into characters and numeric
   df<-df%>%
     #dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`),as.character(df)) 
-    dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`)) %>% 
-    dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`)) %>% 
-    dplyr::mutate_if(is.double, as.numeric)
-  
+    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
+ 
   
   #Add in agency category column to group agencies
   df<-df %>% agency_category()
   
   #recode values to match naming in Financial Integrated Dataset
-  df<- df %>%  dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery")) %>%
-    dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "NSD"= "Non Service Delivery"))
-  
+  df<-df %>% interaction_type_fast()
   
   return(df)
 }
@@ -169,25 +166,17 @@ FAST_Initiative<-function(df){
   #Create variable 'Data stream' with Initiative
   df <- df %>% dplyr::mutate(`Data Stream`="Initiative") #consider renaming to specify FAST
   
-  
   #Convert columns into characters and numeric
-  df<-df%>%
-    #dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`),as.character(df)) 
-    dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`)) %>% 
-    dplyr::mutate(`Fiscal Year`= as.character(`Fiscal Year`)) %>% 
-    dplyr::mutate_if(is.double, as.numeric)
+  df<-df%>%  dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) %>% 
   
   #Replace NAs in numeric columns
   df <- df %>% dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))
-  
   
   #Drop all rows without an OU specified 
   df <- df %>%  drop_na('Operating Unit') 
   
   #recode values for different variables as needed
-  df <- df %>% dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery")) %>%
-    dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "NSD"= "Non Service Delivery"))
-  
+  df<- df %>% interaction_type_fast()
   
   #Add in agency category column to group agencies
   df<-df %>% agency_category()
@@ -242,8 +231,7 @@ FAST_Commodities<-function(df){
      drop_na('Mechanism ID') %>%
     
   #Recode values for different variables as needed
-    dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery", "NSD"= "Non Service Delivery"))  %>%
-    
+    df<- df %>% interaction_type_fast()
   #Add dashes back in Facility-based testing and Community-Based Testing 
     dplyr::mutate(`Sub Program Area`= recode (`Sub Program Area`, "Facility based testing"= "Facility-based testing", "Community based testing"= "Community-based testing"))  
   
