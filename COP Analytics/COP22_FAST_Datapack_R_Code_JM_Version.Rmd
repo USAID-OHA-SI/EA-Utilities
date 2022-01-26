@@ -1,5 +1,5 @@
 ---
-title: "COP21 FAST Datapack Code"
+title: "COP22 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
 date: "01/26/2022"
 output: html_document
@@ -70,7 +70,7 @@ source("~/GitHub/EA-Utilities/COP Analytics/esf_function.R")
 ```
 
 
-5)FAST BY EARMARKS_OU [NOT NEEDED FOR PRIMARY DATASET]
+FAST BY EARMARKS_OU [NOT NEEDED FOR PRIMARY DATASET]
 ##if code does not work, check to see the column range chosen (AB/Y Denominator should be last column selected). Applies to section 6
 ```{r}
   #Clean the FAST SCM tab using the function for Earmarks data-roll up to OU level so it can be compared to PLL Earmarks. 
@@ -116,8 +116,7 @@ source("~/GitHub/EA-Utilities/COP Analytics/esf_function.R")
   }
 ```  
 
-6)DATAPACK
-VDC
+DATAPACK
 ```{R}
 #load packages
   library(tameDP) #version 3.2.4
@@ -187,7 +186,6 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
   df.Initiative <- purrr::map_dfr(.x = Fast,
                            .f = ~ FAST_Initiative(.x))
 
-  
   #additional steps for Commodities
   #Data frame for Commodities Budget (prior to merging in identifiers)
   df.Commodities_pre <- purrr::map_dfr(.x = Fast,
