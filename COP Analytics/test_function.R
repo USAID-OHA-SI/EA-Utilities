@@ -36,6 +36,17 @@ interaction_type_fast <- function(df){
                                           "NSD"= "Non Service Delivery"))
 }
 
+COP22_master_clean <- function(df) {
+  df <- df %>%
+  dplyr::filter(`Total Planned Funding` !=0) %>%
+  dplyr::mutate_at(vars(`COP Budget New Funding`),~replace_na(.,0))%>%
+  dplyr::mutate_at(vars(`COP Budget Pipeline`),~replace_na(.,0)) %>% 
+  dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
+  dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
+  dplyr::rename("Country" = `Operating Unit`)
+  
+}
+
 #By first creating the functions, it will allow us to, later on, clean up/transform the 
 #datasets according to variables that are needed to bind the data.
 
