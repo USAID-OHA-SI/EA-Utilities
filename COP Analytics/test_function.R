@@ -304,6 +304,16 @@ FAST_Earmarks_IM<-function(df){
   df <- df %>%
     dplyr::mutate(`Total Planned Funding`=as.numeric(`Total Planned Funding`))
   
+  #Add in agency category column to group agencies
+  agency_category_fast<-function(df){
+    df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+      mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                        ifelse(`Agency Category` == "USAID/WCF", "USAID",
+                                               ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                                      ifelse(`Agency Category` =="Dedup", "Dedup","Other"))))) %>% 
+      dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
+  }
+  
   #recode values to match naming in Budget-ER-MER Dataset
     interaction_type_fast <- function(df){
       df<-df %>% dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery",
