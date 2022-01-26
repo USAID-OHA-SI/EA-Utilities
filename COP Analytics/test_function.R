@@ -21,7 +21,7 @@ library(devtools)
 #add Google drive code (possibly)
 
 #COP22 FAST Functions
-
+#agency category helper function
 agency_category_fast<-function(df){
   df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
     mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
@@ -85,6 +85,7 @@ FAST_Intervention<-function(df){
   return(df)
 }
 
+#Clean the FAST SCM tab using the function for Cross-Cutting Attribution + Earmark data.
 FAST_CCA<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df,"Standard COP Matrix-R", skip=3)
@@ -134,6 +135,8 @@ FAST_CCA<-function(df){
   return(df)
 }
 
+#Clean the FAST SCM tab using the function for Initiative data. 
+#****Note that this is not by funding account since the FAST doesn't have applied pipeline by funding account*****
 FAST_Initiative<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx("C:/Users/jmontespenaloza/Documents/FASTS/Nigeria_COP22_FAST_V1.xlsx", 
@@ -183,6 +186,7 @@ FAST_Initiative<-function(df){
   return(df)
 }
 
+#Clean the FAST Commodities tab using the function for Initiative data. 
 #pending
 FAST_Commodities<-function(df){
   df<-read_xlsx(df, "Commodities-E", skip=3)
@@ -238,6 +242,9 @@ FAST_Commodities<-function(df){
   return(df)
 }
 
+
+#The commodities tab doesn't have certain identifiers (Funding Agency, Mechanism Name, Prime Partner) 
+#so this list will be used later to join to make the final commodities data frame
 FAST_MECHSLIST<-function(df){
   df<-read_xlsx(df, "Mechs List-R", skip=1)
   df<- df %>%  
@@ -245,6 +252,7 @@ FAST_MECHSLIST<-function(df){
     dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`))
   return(df)
 } 
+
 
 FAST_Earmarks_IM<-function(df){
   df<-read_xlsx(df, "Standard COP Matrix-R", skip=3)
