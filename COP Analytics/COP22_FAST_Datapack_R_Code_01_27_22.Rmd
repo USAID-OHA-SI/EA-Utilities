@@ -1,0 +1,223 @@
+---
+title: "COP22 FAST Datapack Code"
+author: "Jairo Montes & Vanessa Da Costa"
+date: "01/27/2022"
+output: html_document
+---
+
+
+##Purpose:
+This code was developed to integrate real-time notional budget data from the COP22 FAST with COP22 notional target data from  Data Pack and historic expenditure and performance data. 
+
+
+##Step 1: Installing Packages
+R packages are a collection of R functions, complied code and sample data. They are stored under a directory called "library" in the R environment. By default, R installs a set of packages during installation. https://www.tutorialspoint.com/r/r_packages.htm
+```{r}
+install.packages("tidyr")
+install.packages("tidyverse")
+install.packages("dplyr")
+install.packages("stringr")
+install.packages("readxl")
+install.packages("here")
+#install.packages("googlesheets4")
+install.packages("remote")
+install.packages("data.table")
+install.packages("splitstackshape")
+#install.packages("googledrive")
+devtools::install_github("USAID-OHA-SI/glamr")
+install.packages("purrr")
+install.packages("devtools")
+remotes::install_github("USAID-OHA-SI/tameDP")
+remotes::install_github("USAID-OHA-SI/gophr")
+```
+
+##Step 2: Running Libraries
+```{r}
+library(rmarkdown)
+library(stringr)
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(readr)
+library(readxl)
+library(here)
+library(glamr)
+library(purrr)
+library(data.table)
+#library(googlesheets4)
+library(splitstackshape)
+#library(googledrive)
+library(tameDP)
+library(gophr)
+library(devtools)
+library(tameDP) #version 3.2.4
+library(purrr)
+```
+
+
+##Step 3: Locating the dataset files
+The "here()" funcitons constructs paths to your project's files, it will locate the files relative to your project root.
+```{r}
+  here()
+  here("COP22 Tools")
+```
+
+##Step 4: Creating functions
+Load the following source files to apply the functions necessary to create each data stream
+```{R}
+source("~/GitHub/EA-Utilities/COP Analytics/fast_function.R")
+source("~/GitHub/EA-Utilities/COP Analytics/dp_function.R") 
+source("~/GitHub/EA-Utilities/COP Analytics/esf_function.R")
+#source("~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv")
+```
+
+
+
+##Step 5: READING IN DATASETS AND APPLYING THE FUNCTIONS--> dfs
+Read in the FAST & Datapack and clean it using our functions. Pattern is helpful to use here but be careful that you are not picking up more than one dataset.
+```{R}
+#Read in FAST & DATAPACK files
+#identify all the Data Pack files (pull in validated datapacks apps.datim.org/datapack)
+  datapack<- list.files(here("COP22 TOOLS/DATAPACK"), full.names = TRUE)
+
+  #Data frame for targets
+  df_all<-map_dfr(.x = datapack, 
+                .f= ~ tame_dp(.x, map_names=FALSE)) 
+
+  df_dp<- df_all %>% datapack_im_tab()
+
+#identify all the FAST files  
+  Fast<-list.files(here("COP22 TOOLS/FASTS"),full.names = TRUE)
+
+  #Data frame for Intervention Budget
+  df.Intervention <- purrr::map_dfr(.x = Fast,
+                                  .f = ~ FAST_Intervention(.x))
+
+  #Data frame for Cross-Cutting Attribution Budget
+  df.CCA <- purrr::map_dfr(.x = Fast,
+                         .f = ~ FAST_CCA(.x))
+
+  #Data frame for Initiative Budget
+  df.Initiative <- purrr::map_dfr(.x = Fast,
+                           .f = ~ FAST_Initiative(.x))
+
+  #additional steps for Commodities
+  #Data frame for Commodities Budget (prior to merging in identifiers)
+  df.Commodities_pre <- purrr::map_dfr(.x = Fast,
+                                  .f = ~ FAST_Commodities(.x))
+
+  #Data frame for Mech List
+  df.MechsList <- purrr::map_dfr(.x = Fast,
+                                       .f = ~ FAST_MECHSLIST(.x))
+  
+  #Merge in  Mech List to make final Commodities data frame
+  #Note that this includes OU but not Operating Unit
+  df.Commodities<- left_join(df.Commodities_pre, df.MechsList, by = "Mechanism   
+                            ID")
+  
+  #Data frame for Earmarks from FAST by IM
+  df.Earmarks_IM <- purrr::map_dfr(.x = Fast,
+                                 .f = ~ FAST_Earmarks_IM(.x))
+ 
+  #Data frame for Operating Unit and Country
+  df.OU_Country <- read.csv (
+    "~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv", check.names = FALSE,  
+    fileEncoding="UTF-8-BOM")
+
+
+```
+##Step 6: Bind Dataframes
+Master COP22 FAST/DATAPACK File
+Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Commodities'
+```{r}
+  #bind all data frames
+  df.COP22PlanningDataset<-bind_rows(df.Intervention,df.CCA, df.Initiative,  
+                                    df.Commodities, df.Earmarks_IM) %>% 
+  COP22_master_clean()
+
+  #add in Operating Unit
+   df.COP22PlanningDataset <- merge(df.COP22PlanningDataset, df.OU_Country, by = "Country")
+    
+  #RUN IF HAVE FASTS AND DATAPACK 
+  df.COP22PlanningDataset_Final <-bind_rows(df.COP22PlanningDataset,df_dp) 
+
+
+```
+
+##Step 7:Review Data
+```{r}
+  unique(df.COP22PlanningDataset$`Data Stream`)
+  unique(df.COP22PlanningDataset_Final$`Program Area`)
+  glimpse(df.Earmarks_OU)
+  df.COP21PlanningDataset%>%
+    group_by(`Fiscal Year`, `Data Stream`) %>%
+    filter (`Fiscal Year`==2023)  %>%
+    summarize (sum(`Total Planned Funding`))
+```
+
+##Step 8: Write the file to output folder.
+Update the date
+```{r}
+  write_csv(df.COP21PlanningDataset_Final,"COP22 FAST and Data Pack Submissions/Dataset/FAST_DATAPACK_01_27_22_v1.csv")
+```
+
+##Additional Steps
+##STEP 9: Aggregate DHI Investments Tab into its own dataset
+```{r}  
+    
+df.DHI <-df.Intervention %>% 
+      dplyr::rename("Country" = `Operating Unit`) %>% 
+      dplyr::select('Country':'Digital Health Investments', 'Data Stream') %>% 
+      agency_category_fast()
+      distinct(.keep_all= TRUE)
+      
+      glimpse(df.DHI)
+  
+   df.DHI_Final <- merge(df.DHI, df.OU_Country, by = "Country")
+  
+   write_csv(df.DHI_Final,"COP22 FAST and Data Pack Submissions/Dataset/DHI_01_27_22_v1.csv")  
+```
+
+##STEP 10: DATAPACK OUTPUT
+```{r}  
+
+#WITHDISAGGREGATES     
+df_datapack_all <-df_all %>%  
+dplyr::mutate(`Agency Category` = `fundingagency`) %>% 
+dplyr::mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                      ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                             ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup","Other")))) 
+
+  write_csv(df_datapack_all,"COP21 FAST and Data Pack Submissions/Dataset/Datapack_Master_05_25_v1.csv")  
+
+#WITHOUTDISAGGREGATES
+  df_datapack_agg<- df_all %>%
+  dplyr::filter(disagg != "KeyPop") %>%
+  dplyr::group_by(operatingunit, countryname, fundingagency, mech_code, primepartner, mech_name, indicator, fiscal_year, numeratordenom) %>%
+  dplyr::summarise(targets = sum(targets, na.rm = TRUE)) %>% 
+  dplyr::ungroup() %>% 
+dplyr::mutate(`Agency Category` = `fundingagency`) %>% 
+dplyr::mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                      ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                             ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup","Other")))) 
+    
+  write_csv(df_datapack_agg,"COP21 FAST and Data Pack Submissions/Dataset/Datapack_Agg_Master_05_25_v1.csv")  
+```
+
+##STEP 11: COMMODITIES ONLY Output
+```{r}
+
+ df.Commodities_only<- df.Commodities %>% 
+    dplyr::filter(`Total Planned Funding` !=0) %>%
+     dplyr::mutate(
+    `Agency Category` = case_when(
+     `Funding Agency` == "USAID/WCF"~ "USAID",
+      TRUE ~ `Agency Category` )) %>% 
+     dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
+        dplyr::rename("Country" = `Operating Unit`)
+
+ df.Commodities_only <- merge(df.Commodities_only, df.OU_Country, by = "Country")
+
+  write_csv( df.Commodities_only,"COP22 FAST and Data Pack Submissions/Dataset/Commodities_Only_01_27_22_v1.csv")  
+
+```
