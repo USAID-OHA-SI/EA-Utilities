@@ -1,7 +1,7 @@
 ---
 title: "COP22 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
-date: "01/26/2022"
+date: "01/27/2022"
 output: html_document
 ---
 
@@ -112,7 +112,8 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
   
   #Merge in  Mech List to make final Commodities data frame
   #Note that this includes OU but not Operating Unit
-  df.Commodities<- left_join(df.Commodities_pre, df.MechsList, by = "Mechanism ID")
+  df.Commodities<- left_join(df.Commodities_pre, df.MechsList, by = "Mechanism   
+                            ID")
   
   #Data frame for Earmarks from FAST by IM
   df.Earmarks_IM <- purrr::map_dfr(.x = Fast,
