@@ -20,8 +20,7 @@ library(glitr)
   #the first 2 steps, reading in files, mapping dataframe are in the direct code#
  
   datapack_im_tab<-function(df){
-    df_all<-get_names(df_all) %>% 
-     df_dp<- df_all %>%
+     df<- df %>%
     get_names() %>% 
    # df_datapack() %>% 
     dplyr::filter(disagg != "KeyPop") %>%
@@ -37,13 +36,20 @@ library(glitr)
                   `Fiscal Year` = fiscal_year,
                   Indicator = indicator,
                   Target = targets) %>%
+   
     dplyr::mutate(`Fiscal Year` = "2023",
                   `Data Stream` = "MER",
                   `Planning Cycle`="COP22") %>%
-    dplyr::mutate(`Agency Category` = `Funding Agency`) %>% 
-    dplyr::mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
-                                             ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                                    ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup","Other")))) %>% 
+    
+    agency_category_fast<-function(df){
+         df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+           mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                             ifelse(`Agency Category` == "USAID/WCF", "USAID",
+                                                    ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                                           ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup", "Dedup","Other"))))) %>% 
+           dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
+       } %>% 
+       
     dplyr::mutate(`Program Area` = dplyr::case_when(Indicator == "HTS_TST_POS" ~ "HTS",
                                                     Indicator == "HTS_TST" ~ "HTS",
                                                     Indicator == "TX_CURR" ~ "C&T",
