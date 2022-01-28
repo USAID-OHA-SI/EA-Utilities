@@ -29,15 +29,15 @@ working_dir <- "C:/Users/davidsong/Desktop/USAID/TEST"
 git_dir <- "C:/Users/davidsong/Desktop/USAID"
 
 # Set Google Drive directory (destination)
-drive_path <- "1aIcQwJqHmecUCx11r6AWnUKwsUyse0WE"
+drive_path <- "1669ALUvY1jNS9c0Shm6_YXA9sTnb7cVJ"
 
 # Set local directory names for Outputs and Log files
-output_dir <- "output"
+output_dir <- "ER briefers"
 log_dir <- "logs"
 
 # Manually set list of OUs to subset (list of names or of numeric index positions)
 # Note: Only use if you want to subset; otherwise leave it an empty vector
-ou_choice <- c(1:5)  # ex. c(1:5) or c("Angola", "Asia Region", "Cameroon")
+ou_choice <- c()  # ex. c(1:5) or c("Angola", "Asia Region", "Cameroon")
 
 ### Global =====================================================================
 fsd_cols <- c("record_type", "operatingunit", "countryname", "fundingagency", "fiscal_year",
@@ -151,7 +151,7 @@ df_hrh_temp <- gen_hrh(df_hrh_full) %>%
   data.table::copy()
 
 # Select OUs
-ou <- unique(df_fsd$operatingunit)
+ou <- unique(df_fsd_temp$operatingunit)
 # ou <- append(ou, "Central Mechanisms")
 
 # Subsets OUs if user chooses to subset OUs
@@ -200,7 +200,7 @@ file.rename(from = curr_files,
 
 
 # ##### Upload to Google Drive ##################################
-# ### UNCOMMENT THIS WHEN YOU WANT TO UPLOAD #####################
-# load_secrets()
-# 
-# upload_dir_to_gdrive(output_dir, drive_path)
+### UNCOMMENT THIS WHEN YOU WANT TO UPLOAD #####################
+load_secrets()
+
+upload_dir_to_gdrive(output_dir, drive_path)

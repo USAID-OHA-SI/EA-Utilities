@@ -35,7 +35,7 @@ header-includes:
       \renewcommand{\headrulewidth}{0pt}}
 
 params:
-  ou: "Burundi"
+  ou: "Angola"
   fiscal_yr: 2021
       
 ---
@@ -79,6 +79,7 @@ knitr::opts_chunk$set(echo = FALSE)
 # df_msd_full <- read_csv(glue("{temp_dir}/msd_tgt.csv"))
 # df_hrh_full <- read_csv(glue("{temp_dir}/df_hrh.csv"))
 ################################################################################
+glamr::load_secrets()
 
 df_fsd <- df_fsd_full %>%
   dplyr::filter(operatingunit == params$ou)
@@ -92,7 +93,8 @@ msd_tgt<- df_msd_full %>%
   dplyr::filter(operatingunit == params$ou)
 
 df_hrh <- df_hrh_full %>%
-  dplyr::filter(operatingunit == params$ou)
+  dplyr::filter(operatingunit == params$ou) %>%
+  glamr::remove_sch("SGAC")
 
 # rm(df_fsd_full)
 # rm(df_msd_full)
@@ -103,7 +105,7 @@ df_hrh <- df_hrh_full %>%
 \newpage
 # Introduction
 
-The purpose of this briefer is to highlight the financial performance and trends of `r params$ou` that can be showcased or used for COP`r params$fiscal_yr-1999` preparation.  These analyses are not intended to replace the EA Tableau dashboards, but rather to provide a summary of key, high-level expenditure data which could lead to more detailed, tailored asks from country leadership during COP planning. For questions please reach out to your EA POC or gh.oha.ea\@usaid.gov. All visuals exclude M\&O unless noted otherwise.
+The purpose of this briefer is to highlight the financial performance and trends of `r params$ou` that can be showcased or used for COP`r params$fiscal_yr-1999` preparation.  These analyses are not intended to replace the EA Tableau dashboards, but rather to provide a summary of key, high-level expenditure data which could lead to more detailed, tailored asks from country leadership during COP discussions For questions please reach out to your EA POC or gh.oha.ea\@usaid.gov. All visuals exclude M\&O unless noted otherwise.
 
 
 # Sample questions \& analytics utilizing PEPFAR financial data for USAID Programming
@@ -238,7 +240,7 @@ df_ue %>%
 The transition to local partners (LP) remains a key priority for USAID. The below graph highlights the trend in LP expenditure from FY18 onwards in `r params$ou`. You can also see a table of budget execution for local partners by program area. 
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE,fig.width=8,fig.height=6}
-glamr::load_secrets()
+# glamr::load_secrets()
 
 df_local<- gen_local(df_fsd)
 local_table <- gen_local_table(df_local) %>%
@@ -390,6 +392,8 @@ The primary purpose of the HRH inventory data is to better understand the way ag
 ## HRH in the Context of Expenditure Data
 The table below provides an OU-level overview on HRH information (HRH Full Time Equivalence (FTE), number of HRH individuals, HRH expenditure, and total expenditure (ER)). Most OUs report anywhere from 30-60\% of the total OU expenditure is for HRH, and HRH is one of PEPFAR’s top cost drivers. 
 
+*Note: GHSC mechanisms excluded
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 hrh_main <- gen_hrh_main(df_hrh, df_fsd)%>%
   mutate(across(c(4,5), formattable::currency,digits=0)) %>%
@@ -400,7 +404,7 @@ hrh_main <- gen_hrh_main(df_hrh, df_fsd)%>%
 
 hrh_main %>%
   kable("latex", booktabs=T, longtable=T,
-        col.names=c("Agency", "Annual FTE", "Count", "Actual Annual Spend",
+        col.names=c("Agency", "Annual FTE", "# of Individuals", "HRH Total Expenditure",
                     "Total Expenditure", "HRH Percent Share")) %>%
   kable_styling(latex_options=c("hold_position", "striped", "repeat_header"))
 ```
@@ -416,7 +420,7 @@ hrh_staff <- gen_staff(df_hrh)%>%
   mutate(across(c(3:17)[c(T, F)], formattable::percent,digits=0)) %>%
   arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
 
-hrh_cols <- c("Agency", "Actual Annual Spend", "Spend Share", "Annual FTE", "FTE Share")
+hrh_cols <- c("Agency", "HRH Total Expenditure", "Spend Share", "Annual FTE", "FTE Share")
 
 hrh_clinic <- hrh_staff %>%select(c(1, 2:5))
 hrh_ancil <- hrh_staff %>% select(c(1, 6:9))
@@ -448,10 +452,13 @@ hrh_pm %>%
   add_header_above(c(" "=1, "Program Management - NSD"=4))
 ```
 ## Comparing TX CURR to  Care and Treatment (C\&T) HRH FTE and Expenditures
-It is possible to examine the HRH inventory data alongside MER results data, however this should be done in a careful and nuanced way. It is difficult to say what is “good” and “bad” in a staffing composition, as you have to look at estimation of time, number of FTE and individuals, types of cadres, etc. Given the importance of treatment programs to sustaining PEPFAR’s success, the table below presents how Care and Treatment Service Delivery (C\&T-SD) expenditure and FTE align with TX CURR achievement.  While a direct link between the HRH and MER data is difficult to discern, it is important to reflect on how the balance of C\&T FTE aligns with treatment-related indicators. For example, a funding agency spending large amounts on C\&T with low achievement may require greater programmatic support. There is no ideal expenditure or total FTE that country teams should aim for, however you can make comparisons across agencies and mechanisms to better understand HRH investments that support TX CURR target achievement.
+It is possible to examine the HRH inventory data alongside MER results data, however this should be done in a careful and nuanced way. It is difficult to say what is “good” and “bad” in a staffing composition, as you have to look at estimation of time, number of FTE and individuals, types of cadres, etc. Given the importance of treatment programs to sustaining PEPFAR’s success, the table below presents how Care and Treatment Service Delivery (C\&T-SD) expenditure and FTE align with TX CURR achievement.  While a direct link between the HRH and MER data is difficult to discern, it is important to reflect on how the balance of C\&T FTE aligns with treatment-related indicators. There is no ideal expenditure or total FTE that country teams should aim for, however you can make comparisons across agencies and mechanisms to better understand HRH investments that support TX CURR target achievement. In general, lower costs and\/or FTE for higher MER performance (than other agencies) would be considered a strength and high costs and\/or FTE for lower MER performance (than other agencies) would be a potential weakness. 
+
+*Note: All Ancillary and Clinical workers are SD, all Other Staff and PM staff are NSD.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-hrh_mer <- gen_hrh_mer(df_hrh, msd_tgt) %>%
+hrh_mer <- merge_hrh_mer(df_hrh) %>%
+  gen_hrh_mer(., df_msd=msd_tgt) %>%
   ungroup() %>%
   # select every other # between 2 and 10, and between 3 and 11
   mutate(across(c(2,6), formattable::currency,digits=0)) %>%
@@ -460,9 +467,10 @@ hrh_mer <- gen_hrh_mer(df_hrh, msd_tgt) %>%
   mutate(cumulative = formattable::comma(cumulative, digits=0)) %>%
   arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
 
-hrh_mer_cols <- c("Agency", "Actual Annual Spend", "Spend Share", "Annual FTE",
-                  "FTE Share",
-                  "Actual Annual Spend", "Spend Share", "Annual FTE","FTE Share",
+hrh_mer_cols <- c("Agency", "HRH Total Expenditure", "Spend Share", "Annual FTE",
+                  "FTE Share of Agency Total",
+                  "Actual Annual Spend", "Spend Share", "Annual FTE",
+                  "FTE Share of Agency Total",
                   "Cumulative", "Achievement")
 
 hrh_mer %>%

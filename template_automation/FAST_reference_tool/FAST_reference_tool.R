@@ -1,6 +1,6 @@
-## version 4-0:
-## New Features in 4-0 include:
-##            * 
+## version 4-3:
+## New Features in 4-1 include:
+##            * Separate Service Type (Service Delivery vs. non-service delivery)
 ##              
 ##            * 
 ##              
@@ -36,9 +36,9 @@ curr_fiscal_year <- 2022
 cop_year <- substr(as.character(curr_fiscal_year), 3, 4)
 
 # Drive path is to Partner_data_output folder. Change path name to select correct upload path
-glbl_id <- '1OaOe8W0akNSIbtk68w1kXc20GNRzOzew'
+glbl_id <- '17tyyeuPorZIiW-v40og95EGKRXw8rQCY' #'1OaOe8W0akNSIbtk68w1kXc20GNRzOzew'
 # Directory name (used both on local system and in Google Drive, see "Generate File" section of code)
-fisc_dir = "COP22_FAST_reference_tools/"
+fisc_dir = "COP22_baseline_budget_tools/"
 
 id_cols <-c('fundingagency', 'mech_name', 'primepartner', 'mech_code',
             'program_sub_program', 'beneficiary_sub_beneficiary')
@@ -55,7 +55,7 @@ max_substr_len <- 30
 # Row start for Summary dataframe on summary tab
 sumRowStart <- 5
 
-fast_ref_template <- "fast_reference_template.xlsx"
+fast_ref_template <- "fast_reference_template_v4-2.xlsx"
 summary_sheet_num <- 2
 ref_sheet_num <- summary_sheet_num + 1
 
@@ -100,7 +100,7 @@ light_grey <- createStyle(fgFill = '#F2F2F2')
 concat_df <- function(df){
   # Concat columns
   df <- df %>%
-    add_column("program_sub_program" = glue("{.$program}: {.$sub_program}"),
+    add_column("program_sub_program" = glue("{.$program}: {.$sub_program}-{.$interaction_type}"),
                .before = "program") %>%
     add_column("beneficiary_sub_beneficiary" = glue("{.$beneficiary}: {.$sub_beneficiary}"),
                .before = "beneficiary")
@@ -153,8 +153,8 @@ mech_pipeline <- function(df, mech_name){
 abridge <- function(strng, max_len){
   len_str <- nchar(strng)
   if (len_str > max_len){
-    start <- substr(strng, 1, 23)
-    end <- substr(strng, len_str-4, len_str)
+    start <- substr(strng, 1, 21)
+    end <- substr(strng, len_str-6, len_str)
     return(glue("{start}...{end}"))
   } else {
     return(strng)
@@ -170,7 +170,7 @@ gen_sheet <- function(wb, df_mech, mech_mod, sheet_num){
   
   df_mech_id <- df_mech[1, 1:4]
   df_extra_rows <- df_mech_id[rep(seq_len(nrow(df_mech_id)), each = 5), ]
-
+  
   # always clone the reference sheet 
   cloneWorksheet(wb, mech_mod, clonedSheet = names(wb)[[ref_sheet_num]])
   
@@ -232,6 +232,8 @@ gen_sheet <- function(wb, df_mech, mech_mod, sheet_num){
            cols = 12, gridExpand = TRUE, stack = TRUE)
   addStyle(wb, sheet = sheet_num, dollar_cell, rows = dataRowStart:(dataRowStart+num_paRows), 
            cols = 15, gridExpand = TRUE, stack = TRUE)
+  # Get rid of decimals for row 4, cumulatives
+  addStyle(wb, sheet = sheet_num, dollar_cell, rows = 4, cols = 7:12, stack=T)
   
   addStyle(wb, sheet = sheet_num, border_cells, rows = (dataRowStart-1):(dataRowStart + len_df-1), 
            cols = 1:12, gridExpand = TRUE, stack = TRUE)
@@ -274,10 +276,11 @@ gen_wb <- function(OU_name, dr){
       mech_lst_short <- c(mech_lst_short, mech)
       
       mech_mod <- mech %>%
+        gsub("Placeholder - Mechanism ", "Placeholder-", .) %>%
         str_replace_all(., c("\\[" = "", "\\]" = "", '\\/' = "", 
-                                          "'" = " ")) %>%
+                                          "'" = " ", ":"="")) %>%
         abridge(., max_len = max_substr_len)
-      
+
       wb <- gen_sheet(wb, df_mech, mech_mod,sheet_count)
       sheet_count <- sheet_count + 1
       
@@ -357,8 +360,10 @@ gen_wb <- function(OU_name, dr){
   removeWorksheet(wb, ref_sheet_num)
   
   # Add OU name and Fiscal year to Guidance page
-  writeData(wb, 1, x = OU_name, startCol = 2, startRow = 3)
-  writeData(wb, 1, x = curr_fiscal_year, startCol = 2, startRow = 4)
+  writeData(wb, 1, x = OU_name, startCol = 2, startRow = 4)
+  writeData(wb, 1, x = curr_fiscal_year, startCol = 2, startRow = 5)
+  showGridLines(wb, 1, showGridLines = FALSE)
+  
   
   file_name <- glue("{dr}{OU_name}_FAST_reference.xlsx")
   saveWorkbook(wb, file_name, overwrite = TRUE)
@@ -388,21 +393,25 @@ progress_tracker <- function(global_progress, ou_id, dr){
 }
 # Read in File==================================================================
 
-# si_path is a function in glamr that outputs saved string path to local Data
-glamr::si_path()
-#<- 'Financial_Structured_Datasets_COP17-21_20210917.txt'
-
 # Run glamr function "si_paths" to generate local paths based on organization's
 # common folder structure for data stored locally.
 # Then call latest file, read in data.frame and filter to select only USAID entries
-df_fsd <- si_path() %>%
+df_fsd_full <- glamr::si_path() %>%
   return_latest("Fin") %>% 
-  gophr::read_msd() %>% 
+  gophr::read_msd()
+df_fsd <- df_fsd_full%>% 
+  glamr::clean_agency()%>%
+  dplyr::mutate(fundingagency=dplyr::case_when(fundingagency== "WCF"~"USAID", 
+                                               TRUE ~fundingagency))%>%
+  dplyr::mutate(interaction_type=case_when(interaction_type=="Non Service Delivery"~"NSD",
+                                           interaction_type=="Service Delivery"~"SD",
+                                           TRUE ~interaction_type)) %>%
   filter(fundingagency == "USAID") %>%
   remove_mo()
 
 # Align labels "Program Management" and "IM Program Management"
 df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program Management", "IM Program Management")
+
 
 # Create Directory =============================================================
 # removes backlash for creation of actual directory
@@ -410,10 +419,10 @@ fisc_dir_name = substr(fisc_dir, 1, nchar(fisc_dir)-1)
 #create output folders folders locally
 dir_create(fisc_dir_name)
 
-# Tests ========================================================================
-# test
-test_OU <- "Cote d'Ivoire"
-gen_wb(test_OU, fisc_dir)
+# # Tests ========================================================================
+# # test
+# test_OU <- "Cote d'Ivoire"
+# gen_wb(test_OU, fisc_dir)
 
 
 # Walk =========================================================================
@@ -423,8 +432,8 @@ lst_ou <-
   distinct(operatingunit) %>%
   pull()
 
-# SHORTEN THE LIST JUST FOR SAKE FO DEMO RUN TIME
-lst_ou <- lst_ou[1:6]
+# # SHORTEN THE LIST JUST FOR SAKE FO DEMO RUN TIME
+# lst_ou <- lst_ou[1:6]
 
 # Global Progress Tracking variables
 global_progress <- 1

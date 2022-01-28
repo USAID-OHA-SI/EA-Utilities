@@ -455,8 +455,8 @@ gen_staff <- function(df_hrh){
     dplyr::relocate(hcw_ancillary_fte_share, .after = `HCW: Ancillary-SD_annual_fte`)
 } 
 
-gen_hrh_mer <- function(df_hrh, df_msd){
-  df_hrh3<-df_hrh%>%
+merge_hrh_mer <- function(df_hrh){
+  df_hrh_out<-df_hrh%>%
     dplyr::mutate(interaction_type= dplyr::case_when(interaction_type == "Service Delivery"~"SD",
                                                      interaction_type == "Non Service Delivery"~"NSD",
                                                      TRUE ~interaction_type))%>%
@@ -467,7 +467,16 @@ gen_hrh_mer <- function(df_hrh, df_msd){
     pivot_longer(actual_annual_spend:annual_fte, names_to="key", values_to="value")%>%
     pivot_wider(names_from = c(pa_level, key), 
                 values_from = value,
-                values_fill=0)%>%
+                values_fill=0)
+}
+
+gen_hrh_mer <- function(df_hrh_mer_merged, df_msd){
+  pivot_cols <- c("SD-C&T_actual_annual_spend", "SD-C&T_annual_fte", 
+                  "NSD-C&T_actual_annual_spend", "NSD-C&T_annual_fte")
+  
+  df_hrh_mer_fixed <-fncols(df_hrh_mer_merged, pivot_cols)
+  
+  df_hrh3 <- df_hrh_mer_fixed%>%
     dplyr::rowwise() %>%
     mutate(total_spend=sum(across(matches("annual_spend"), na.rm = T)))%>%
     mutate(total_fte=sum(across(matches("annual_fte"), na.rm = T)))%>%
@@ -476,6 +485,7 @@ gen_hrh_mer <- function(df_hrh, df_msd){
       sd_ct_fte_share=round(`SD-C&T_annual_fte`/total_fte*100),
       nsd_ct_spend_share=round(`NSD-C&T_actual_annual_spend`/total_spend*100) ,
       nsd_ct_fte_share=round(`NSD-C&T_annual_fte`/total_fte*100))%>% 
+    
     
     select(fiscal_year, operatingunit,fundingagency,`SD-C&T_actual_annual_spend`,
            sd_ct_spend_share,`SD-C&T_annual_fte`,sd_ct_fte_share,`NSD-C&T_actual_annual_spend`,
