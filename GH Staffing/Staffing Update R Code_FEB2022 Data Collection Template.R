@@ -1,7 +1,7 @@
 # Title: Global USAID GH Staffing Dataset Wrangling
 # Author: Vanessa Da Costa
 # Last updated: "February 1, 2022"
-# Purpose: Wrangle Combined/USAID GH Staffing Dataset from June 2021 to align with September 2021 Template
+# Purpose: Wrangle Combined/USAID GH Staffing Dataset from Sep 2021 to align with Feb  2022 Template
 --------------------------------
   #Install packages and run libraries
 install.packages("tidyr")
