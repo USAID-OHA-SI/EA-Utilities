@@ -27,7 +27,7 @@ agency_category_fast<-function(df){
     mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
                                       ifelse(`Agency Category` == "USAID/WCF", "USAID",
                                              ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                                    ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup", "Dedup","Other"))))) %>% 
+                                                    ifelse(`Agency Category` == "Dedup", "Dedup","Other"))))) %>% 
     dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
 }
 #interaction type helper function
