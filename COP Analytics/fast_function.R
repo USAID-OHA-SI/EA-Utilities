@@ -43,7 +43,7 @@ COP22_master_clean <- function(df) {
   dplyr::mutate_at(vars(`COP Budget Pipeline`),~replace_na(.,0)) %>% 
   dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
   dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
-  dplyr::rename("Country" = `OU`)
+  dplyr::rename("Country" = `Operating Unit`)
   
   
 }
@@ -269,7 +269,8 @@ FAST_Commodities<-function(df){
 FAST_MECHSLIST<-function(df){
   df<-read_xlsx(df, "Mechs List-R", skip=1)
   df<- df %>%  
-    dplyr::select ("OU", "Mechanism ID") %>% 
+    dplyr::select ("OU", "Mechanism ID") %>%
+    dplyr::rename("Operating Unit"= "OU")
     dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`))
   return(df)
 } 
