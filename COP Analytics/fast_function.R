@@ -43,7 +43,8 @@ COP22_master_clean <- function(df) {
   dplyr::mutate_at(vars(`COP Budget Pipeline`),~replace_na(.,0)) %>% 
   dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
   dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
-  dplyr::rename("Country" = `Operating Unit`)
+  dplyr::rename("Country" = `OU`)
+  
   
 }
 
@@ -176,7 +177,7 @@ FAST_Initiative<-function(df){
   df <- df %>% gather(funding_account,`COP Budget New Funding`, `GAP`:`GHP-USAID`)
   
   #Create variable 'Data stream' with Initiative
-  df <- df %>% dplyr::mutate(`Data Stream`="Initiative") #consider renaming to specify FAST
+  df <- df %>% dplyr::mutate(`Data Stream`="FAST Initiative") #consider renaming to specify FAST
   
   #Convert columns into characters and numeric
   df<- df  %>%  dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
