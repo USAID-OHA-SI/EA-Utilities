@@ -270,7 +270,7 @@ FAST_MECHSLIST<-function(df){
   df<-read_xlsx(df, "Mechs List-R", skip=1)
   df<- df %>%  
     dplyr::select ("OU", "Mechanism ID") %>%
-    dplyr::rename("Operating Unit"= "OU")
+    dplyr::rename("Operating Unit"= "OU") %>% 
     dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`))
   return(df)
 } 
