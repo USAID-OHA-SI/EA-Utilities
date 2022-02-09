@@ -112,8 +112,7 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
   
   #Merge in  Mech List to make final Commodities data frame
   #Note that this includes OU but not Operating Unit
-  df.Commodities<- left_join(df.Commodities_pre, df.MechsList, by = "Mechanism   
-                            ID")
+  df.Commodities<- left_join(df.Commodities_pre, df.MechsList, by = "Mechanism ID")
   
   #Data frame for Earmarks from FAST by IM
   df.Earmarks_IM <- purrr::map_dfr(.x = Fast,
@@ -158,7 +157,7 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 ##Step 8: Write the file to output folder.
 Update the date
 ```{r}
-  write_csv(df.COP21PlanningDataset_Final,"COP22 FAST and Data Pack Submissions/Dataset/FAST_DATAPACK_01_27_22_v1.csv")
+  write_csv(df.COP22PlanningDataset,here("COP22 TOOLS/FAST_DATAPACK_02_07_22_v1.csv"))
 ```
 
 ##Additional Steps

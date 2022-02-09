@@ -27,7 +27,7 @@ agency_category_fast<-function(df){
     mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
                                       ifelse(`Agency Category` == "USAID/WCF", "USAID",
                                              ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                                    ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup", "Dedup","Other"))))) %>% 
+                                                    ifelse(`Agency Category` == "Dedup", "Dedup","Other"))))) %>% 
     dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
 }
 #interaction type helper function
@@ -44,6 +44,7 @@ COP22_master_clean <- function(df) {
   dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
   dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
   dplyr::rename("Country" = `Operating Unit`)
+  
   
 }
 
@@ -176,7 +177,7 @@ FAST_Initiative<-function(df){
   df <- df %>% gather(funding_account,`COP Budget New Funding`, `GAP`:`GHP-USAID`)
   
   #Create variable 'Data stream' with Initiative
-  df <- df %>% dplyr::mutate(`Data Stream`="Initiative") #consider renaming to specify FAST
+  df <- df %>% dplyr::mutate(`Data Stream`="FAST Initiative") #consider renaming to specify FAST
   
   #Convert columns into characters and numeric
   df<- df  %>%  dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
@@ -268,7 +269,8 @@ FAST_Commodities<-function(df){
 FAST_MECHSLIST<-function(df){
   df<-read_xlsx(df, "Mechs List-R", skip=1)
   df<- df %>%  
-    dplyr::select ("OU", "Mechanism ID") %>% 
+    dplyr::select ("OU", "Mechanism ID") %>%
+    dplyr::rename("Operating Unit"= "OU") %>% 
     dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`))
   return(df)
 } 
