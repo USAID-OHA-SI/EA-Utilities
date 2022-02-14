@@ -1,22 +1,15 @@
-## Version 3.2: 
-## Changes:
-##        * Sort into directories by OU, not one big folder
-## Version 2.1 Changes:
-##        * Use new ARPA category columns
-##        * Reads in style through xlsx template rather than hard coding
-##              - version 2.1 uses ARPA_ER_template_v2.xlsx
-##        * Must use openxlsx version 4.2.3--latest version does not import 
-##          workbook formatting correctly (as of 4.2.4), see below URL
-##          https://github.com/ycphs/openxlsx/issues/207
+## Version 3.0:
+## New Features in 2.0 include:
+##            * Control openxlsx version used to 4.2.3
+##              Latest version (4.2.4) does not preserve imported styling
 
 # LOCALS & SETUP =======================================================================
 
 ## IMPORTANT NOTE: set working directory to Source File for best results
-# Below code sets working directory to source file.
+# Below code sets working directory to source file.=
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Libraries
-library(installr)
 ### If statement checks to see if openxlsx is installed and has the correct version
 packageurl <- "https://cran.r-project.org/src/contrib/Archive/openxlsx/openxlsx_4.2.3.tar.gz"
 if(!require(openxlsx)){install.packages('openxlsx')#packageurl, repos=NULL, type="source")
@@ -32,29 +25,21 @@ if(!require(gophr)){remotes::install_github("USAID-OHA-SI/gophr", build_vignette
 library(openxlsx)
 library(glamr)
 library(gophr)
-library(googledrive)
 library(glue)
+library(googledrive)
 library(tidyverse)
-library(fs)
-
-# Use google drive uploader function
-home_dir <- "C:/Users/davidsong/Desktop/USAID"
-uploader_path <- "/GitHub/EA-Utilities/upload_dir_to_gdrive.R"
-source(glue("{home_dir}{uploader_path}"))
+library(fs) 
 
 # Global Variables======================================================================
 
 # Drive path is to Partner_data_output folder. Change path name to select correct upload path
-glbl_id <- '1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR'
+glbl_id <- '10MUro75F5psphARCr0-0pnqpCMNswEIB'
 
 # Directory name (used both on local system and in Google Drive, see "Generate File" section of code)
-fisc_dir <- "ARPA_templates"
+fisc_dir = "DREAMS_templates"
 
-# Path where ARPA template is stored
-templatePath <- "ARPA_ER_template_v3.xlsx"
-
-# Path to google drive directory
-gdrive_path <- "1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR"
+# Path where DREAMS template is stored
+templatePath <- "DREAMS_template_v1.xlsx"
 
 # Select the fiscal year to use for the Quarterly Template
 curr_year = 2021
@@ -62,26 +47,28 @@ curr_year = 2021
 
 # Functions ============================================================================
 
-# Set cell styles
-template_style <- createStyle(fgFill = "#dcdcdc")
-df_all_cell_style <- createStyle(border = "TopBottomLeftRight", borderStyle = 'thin')
-# Style Excel Workbook column to have currency sign
-dollar_cell <- createStyle(numFmt = '_($* #,##0_);_($* (#,##0);_($* "-"??_);_(@_)') 
-
-
 ## Generate data.frame with cost category, for Work Plan Budget and Expenditure
 ## Input: data.frame with only ONE unique mechanism_id
-gen_df_arpa <- function(df){
+gen_df_with_cost <- function(df){
   # Concat columns
   df <- df %>%
     add_column("program: sub_program" = glue("{.$program}: {.$sub_program}"),
-               .before = "program") %>%
+               .before = "program")
+  df <- df %>%
     add_column("beneficiary: sub_beneficiary" = glue("{.$beneficiary}: {.$sub_beneficiary}"),
-               .before = "beneficiary") %>%
-    group_by(`program: sub_program`, interaction_type, `beneficiary: sub_beneficiary`) %>%
-    summarize_at(vars(expenditure_amt), sum, na.rm=T)
+               .before = "beneficiary")
+  df <- df %>%
+    add_column("cost_category: sub_cost_category" = glue("{.$cost_category}: {.$sub_cost_category}"),
+               .before = "cost_category")
+  
+  drop_cols_temp <- c("cop_budget_total", "operatingunit", "countryname",
+                      "primepartner", "mech_name", "mech_code",
+                      "program", "sub_program", "beneficiary", "sub_beneficiary",
+                      "cost_category", "sub_cost_category",
+                      "planning_cycle", "fiscal_year")
+  
+  df <- df[ , !names(df) %in% drop_cols_temp]
 }
-
 
 
 
@@ -89,49 +76,38 @@ gen_df_arpa <- function(df){
 ## dr is the string pathway for the local directory for outputs. 
 ## Default dr is RStudio's working environment
 wb_pipeline <- function(mech, dr = "", df = df_fsd){
-  df_mech <- df %>% filter(mech_code == mech) 
-  df_arpa <- gen_df_arpa(df_mech)
-  df_arpa <- df_arpa %>%
-    add_column(ipc_cse = NA,
-               ipc_hrh = NA,
-               ipc_other = NA,
-               vax_cse = NA,
-               vax_hrh = NA,
-               vax_other = NA,
-               test_cse = NA,
-               test_hrh = NA,
-               test_other = NA,
-               clinical_cse = NA,
-               clinical_hrh = NA,
-               clinical_other = NA,
-               other_cse = NA,
-               other_hrh = NA,
-               other_other = NA,
-               mitig_repair = NA,
-               mitig_logistics = NA,
-               mitig_lab = NA,
-               mitig_other = NA,
-               activity_description = NA)
+  df_mech <- df %>% filter(mech_code == mech)
+  df_with_cost <- gen_df_with_cost(df_mech)
+  df_with_cost <- df_with_cost %>%
+    add_column(dreams_budget_amt = NA,
+               dreams_expenditure_amt = NA)
   
   # Save country/OU name, prime name, and mechanism name/ID
   # NOTE: if column order changes, this code will break
-  mech_id <- df_mech[1,c(1:5, 14)]
+  mech_id <- df_mech[1,c(1:5,14)]
+  # Add empty column for Quarter input
+  mech_id$Quarter <- ""
   
-  # For now, just store template in same folder as R code
+ 
   wb <- loadWorkbook(templatePath)
-
   writeData(wb, sheet = 1, x = mech_id, startRow = 4, colNames = FALSE, withFilter = FALSE)
-  writeData(wb, sheet = 2, x = df_arpa, startRow = 2, colNames = FALSE, withFilter=FALSE)
+  writeDataTable(wb, sheet = 2, x = df_with_cost, startRow = 2)
+
+
+  # Set cell styles
+  template_style <- createStyle(fgFill = "#dcdcdc")
+  df_all_cell_style <- createStyle(border = "TopBottomLeftRight", borderStyle = 'thin')
   
-  addStyle(wb, sheet = 2, template_style, rows = 2:200, cols = 1:4,
+  addStyle(wb, sheet = 2, template_style, rows = 3:200, cols = 1:4,
            gridExpand = TRUE, stack = TRUE)
-  addStyle(wb, sheet = 2, df_all_cell_style, rows = 2:200, cols = 1:24, 
+  addStyle(wb, sheet = 2, df_all_cell_style, rows = 3:200, cols = 1:8, 
            gridExpand = TRUE, stack = T)
-  addStyle(wb, sheet = 2, dollar_cell, rows = 2:200, cols=4, stack=T)
+
   
-  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_ER_template.xlsx")
+  file_name <- glue("{dr}/{mech_id[2]}_{mech_id[4]}_DREAMS_template.xlsx")
   saveWorkbook(wb, file_name, overwrite = TRUE)
-  return(df_arpa)
+  
+  return(df_with_cost)
 }
 
 # Progress tracker is a wrapper around the wb_pipeline function to track
@@ -160,28 +136,18 @@ progress_tracker <- function(track_num, global_progress = global_progress,
 }
 
 
+# Output folder ========================================================================
+#load_secrets()
+
 # LOAD DATA ============================================================================  
-df_lst_arpa <- read.xlsx("PEPFAR ARPA Budgets by USAID Mechanism.xlsx", startRow=3)
-
-df_fsd_full <-glamr::si_path()%>%
+# si_path is a function in glamr that outputs saved string path to local Data
+df_fsd <-glamr::si_path()%>%
   return_latest("Fin")%>% 
-  gophr::read_msd()
-
-df_fsd <- df_fsd_full %>%
+  gophr::read_msd()%>% 
   filter(fundingagency == "USAID",
-         fiscal_year == curr_year,
-         mech_code %in% df_lst_arpa$Mechanism.ID
+         fiscal_year == curr_year
          ) %>%
   remove_mo()
-
-rm(df_fsd_full)
-gc()
-
-# df_test <- df_fsd %>%
-#   filter(mech_code == 17515) %>%
-#   arrange(program, sub_program, beneficiary, sub_beneficiary)
-
-
 
 # MUNG ===============================================================================
 
@@ -203,14 +169,14 @@ df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program
 
 # # TEST FUNCTIONS =======================================================================
 # Test one mechanism on function pipeline
-test_mech <- "17515"
+test_mech <- "70212"
 
 test_df <- df_fsd %>% filter(mech_code == test_mech)
-test_df_with_cost <- gen_df_arpa(test_df)
+test_df_with_cost <- gen_df_with_cost(test_df)
 
 test_output <- wb_pipeline(test_mech)
 
-names(test_df)
+
 
 # Generate Files=========================================================================
 
@@ -221,8 +187,8 @@ total_files <- length(lst_mech)
 # Get list of unique OUs 
 lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
 
-# ####### THIS SHORTENS LIST FOR TEST RUN #######
-# lst_ou <- lst_ou[1:2]
+####### THIS SHORTENS LIST FOR TEST RUN #######
+lst_ou <- lst_ou[1:2]
 
 #create output folders folders locally
 dir_create(fisc_dir)
@@ -231,7 +197,7 @@ dir_create(fisc_dir)
 global_progress <- 1
 
 for (ou in lst_ou){
-  ou_dir <- glue("{fisc_dir}/{ou}/")
+  ou_dir <- glue("{fisc_dir}/{ou}")
   dir_create(ou_dir)
   df_ou <- df_fsd %>% filter(operatingunit == ou)
   ou_lst_mech <- df_ou %>% distinct(mech_code) %>% pull()
@@ -241,13 +207,15 @@ for (ou in lst_ou){
                                     total_files = total_files,
                                     func = wb_pipeline,
                                     mech = x,dr = ou_dir)
-       )
+  )
 }
 
-# UPLOAD==============================================================================
-# load_secrets()
-
-for (dir in list.dirs(fisc_dir)[-1]){
-  upload_dir_to_gdrive(dir, gdrive_path)
-}
-
+# # UPLOAD==============================================================================
+# # load_secrets()
+# 
+# 
+# list.dirs(fisc_dir)[16:28]
+# #[-1]
+# for (dir in list.dirs(fisc_dir)[-1]){
+#   upload_dir_to_gdrive(dir, gdrive_path)
+# }

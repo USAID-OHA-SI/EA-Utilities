@@ -1,7 +1,7 @@
-# Version 3.0
+# Version 3.2
 #         * Long pivot and add TOTAL category
 # Author: David Song
-# Date: 2022 Jan 28
+# Date: 2022 Jan 31
 
 # LOCALS & SETUP ===============================================================
 # Below code sets working directory to source file.
@@ -71,41 +71,33 @@ bind_arpa <- function(dir_path, col_names = cols){
 
 # Main =========================================================================
 
-df_arpa_test <- bind_arpa(filled_dir)
+small_df <- bind_arpa(filled_dir)
 
-df_data <- df_arpa_test[13:32]
+# df_data <- df_arpa_test[13:32]
 
-# https://www.geeksforgeeks.org/remove-rows-with-empty-cells-in-r/
-num_cols <- ncol(df_data)
-na_lst <- is.na(df_data)
-na_rows_idx <- rowSums(na_lst)
-small_df <- df_arpa_test %>%
-  mutate(na_rows = na_rows_idx)%>%
-  filter(na_rows != num_cols) %>%
-  select(-na_rows)
+# # https://www.geeksforgeeks.org/remove-rows-with-empty-cells-in-r/
+# num_cols <- ncol(df_data)
+# na_lst <- is.na(df_data)
+# na_rows_idx <- rowSums(na_lst)
+# small_df <- df_arpa_test %>%
+#   mutate(na_rows = na_rows_idx)%>%
+#   filter(na_rows != num_cols) %>%
+#   select(-na_rows)
 
 # convert periods to spaces in column names, before converting them to categories
 names(small_df) <- gsub("\\.", " ", names(small_df))
 
-# Generate Total ARPA expenditure sums per row
-small_df["Total ARPA"] <- small_df %>% 
-  select(`Prevention: IPC: C/S/E`:`Mitigation: Other`) %>% 
-  rowSums(na.rm=TRUE)
-
-# move Total ARPA column
-small_df <- small_df %>% relocate(`Total ARPA`, .before = `Activity Description`)
+small_df <- small_df %>% rename(`Total FY21 Expenditure` = Expenditure)
 
 # Pivot Longer to create ARPA category column
 long_df <- small_df %>% 
-  pivot_longer(cols= `Prevention: IPC: C/S/E`:`Total ARPA`, 
+  pivot_longer(cols= `Total FY21 Expenditure`:`Mitigation: Other`, 
                names_to="ARPA_category", 
                values_to="ARPA_expenditure",
-               values_drop_na=T) %>%
+               values_drop_na = T) %>%
   # case_when requires a numeric NA, not base "logical" NA https://github.com/tidyverse/dplyr/issues/3202
-  mutate(Expenditure = case_when(ARPA_category == "Total ARPA" ~ Expenditure, 
-                                 TRUE ~ NA_real_)) %>%
-  mutate(`Activity Description` = case_when(ARPA_category == "Total ARPA" ~ `Activity Description`,
-                                          TRUE ~ NA_character_)) %>%
+  mutate(`Activity Description` = case_when(ARPA_category == "Total FY21 Expenditure" ~ NA_character_,
+                                          TRUE ~ `Activity Description`)) %>%
   relocate(`Activity Description`, .after = last_col())
 
 # Export data
