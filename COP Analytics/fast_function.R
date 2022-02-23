@@ -210,7 +210,9 @@ FAST_Commodities<-function(df){
   df<- df %>%
     dplyr::mutate_at(vars(`Mechanism ID`, `Program Area (Service Delivery Only)`, `Initiative Name`, `Major Category`, `Minor Category`,
                    `Beneficiary`, `Item`,`Item ID`,`Specify Other Procurement`), funs(as.character)) 
-    
+  
+  df<- df %>%
+    dplyr::mutate(`Approval Date`=as.character(`Approval Date`)) 
   #Remove dashes in Facility-based testing and Community-Based Testing temporarily
   df<- df %>%
     dplyr::mutate(`Program Area (Service Delivery Only)`= recode (`Program Area (Service Delivery Only)`, 
