@@ -78,8 +78,11 @@ FAST_Intervention<-function(df){
   
   #Convert columns into characters and numeric
   df<-df%>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
-    
+    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`,`Record Type`,`Funding Agency`,
+                          `Prime Partner Name`,`Mechanism Name`,`Is Indigenous Prime Partner`,
+                          `Prime Partner Type`,`Program Area`,`Sub Program Area`,`Interaction Type`,
+                          `Beneficiary`,`Sub Beneficiary`,`Digital Health Investments`), funs(as.character)) 
+  
     #remove N/A's
     #Drop all rows without an OU specified 
     df <- df %>%  drop_na('Operating Unit')
@@ -134,7 +137,10 @@ FAST_CCA<-function(df){
 
   #Convert columns into characters and numeric
   df<-df%>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
+    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`,`Record Type`,`Funding Agency`,
+                          `Prime Partner Name`,`Mechanism Name`,`Is Indigenous Prime Partner`,
+                          `Prime Partner Type`,`Program Area`,`Sub Program Area`,`Interaction Type`,
+                          `Beneficiary`,`Sub Beneficiary`), funs(as.character)) 
  
   #Add in agency category column to group agencies
   df<-df %>% agency_category_fast()
@@ -180,7 +186,11 @@ FAST_Initiative<-function(df){
   df <- df %>% dplyr::mutate(`Data Stream`="FAST Initiative") #consider renaming to specify FAST
   
   #Convert columns into characters and numeric
-  df<- df  %>%  dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
+  df<-df%>%
+    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`,`Record Type`,`Funding Agency`,
+                          `Prime Partner Name`,`Mechanism Name`,`Is Indigenous Prime Partner`,
+                          `Prime Partner Type`,`Program Area`,`Sub Program Area`,`Interaction Type`,
+                          `Beneficiary`,`Sub Beneficiary`), funs(as.character)) 
   
   #Replace NAs in numeric columns
   df <- df %>% dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))
@@ -201,18 +211,17 @@ FAST_Initiative<-function(df){
 #pending
 FAST_Commodities<-function(df){
   df<-read_xlsx(df, "Commodities-E", skip=3)
-  
+
   df<- df %>%  
     dplyr::rename("Specify Other Procurement" =`Specify 'Other' Procurement`) %>% 
-    dplyr::select( -c('View SPT Item on Commodities-P', 'View Initiative on Initiative-E')) 
+    dplyr::select( -c("Validation Message":"View Initiative on Initiative-E")) 
    
   #Convert character columns to characters
   df<- df %>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Program Area (Service Delivery Only)`, `Initiative Name`, `Major Category`, `Minor Category`,
-                   `Beneficiary`, `Item`,`Item ID`,`Specify Other Procurement`), funs(as.character)) 
+    dplyr::mutate_at(vars(`Funding Agency`:`Approval Date`), funs(as.character)) 
   
   df<- df %>%
-    dplyr::mutate(`Approval Date`=as.character(`Approval Date`)) 
+    dplyr::mutate_at(vars(`Quality Assurance $`, `In Country Logistics $`), funs(as.numeric)) 
   #Remove dashes in Facility-based testing and Community-Based Testing temporarily
   df<- df %>%
     dplyr::mutate(`Program Area (Service Delivery Only)`= recode (`Program Area (Service Delivery Only)`, 
