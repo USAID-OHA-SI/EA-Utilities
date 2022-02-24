@@ -29,6 +29,7 @@ install.packages("purrr")
 install.packages("devtools")
 remotes::install_github("USAID-OHA-SI/tameDP")
 remotes::install_github("USAID-OHA-SI/gophr")
+install.packages("keyring")
 ```
 
 ##Step 2: Running Libraries
@@ -40,7 +41,6 @@ library(tidyverse)
 library(tidyr)
 library(readr)
 library(readxl)
-library(here)
 library(glamr)
 library(purrr)
 library(data.table)
@@ -50,8 +50,9 @@ library(splitstackshape)
 library(tameDP)
 library(gophr)
 library(devtools)
-library(tameDP) #version 3.2.4
-library(purrr)
+library(keyring)
+library(here)
+
 ```
 
 
@@ -60,6 +61,9 @@ The "here()" funcitons constructs paths to your project's files, it will locate 
 ```{r}
   here()
   here("COP22 Tools")
+  
+  glamr::load_secrets()
+  set_datim("jmontespenaloza")
 ```
 
 ##Step 4: Creating functions
@@ -82,7 +86,7 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
 
   #Data frame for targets
   df_all<-map_dfr(.x = datapack, 
-                .f= ~ tame_dp(.x, map_names=FALSE)) 
+                .f= ~ tame_dp(.x, type = "PSNUxIM", map_names=FALSE)) 
 
   df_dp<- df_all %>% datapack_im_tab()
 
