@@ -22,8 +22,7 @@ library(glitr)
   datapack_im_tab<-function(df){
      df<- df %>%
     get_names() %>% 
-   # df_datapack() %>% 
-    dplyr::filter(disagg != "KeyPop") %>%
+    dplyr::filter(standardizeddisaggregate != "KeyPop") %>%
     dplyr::group_by(operatingunit, countryname, fundingagency, mech_code, primepartner, mech_name, indicator, fiscal_year, numeratordenom) %>%
     dplyr::summarise(targets = sum(targets, na.rm = TRUE)) %>% 
     dplyr::ungroup() %>% 
@@ -39,7 +38,7 @@ library(glitr)
    
     dplyr::mutate(`Fiscal Year` = "2023",
                   `Data Stream` = "MER",
-                  `Planning Cycle`="COP22") %>%
+                  `Planning Cycle`="COP22")
     
     agency_category_fast<-function(df){
          df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
@@ -48,9 +47,10 @@ library(glitr)
                                                     ifelse(`Agency Category` == "HHS/CDC", "CDC",
                                                            ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup", "Dedup","Other"))))) %>% 
            dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
-       } %>% 
+       } 
        
-    dplyr::mutate(`Program Area` = dplyr::case_when(Indicator == "HTS_TST_POS" ~ "HTS",
+    df<-df %>%
+      dplyr::mutate(`Program Area` = dplyr::case_when(Indicator == "HTS_TST_POS" ~ "HTS",
                                                     Indicator == "HTS_TST" ~ "HTS",
                                                     Indicator == "TX_CURR" ~ "C&T",
                                                     Indicator == "TX_NEW" ~ "C&T",
