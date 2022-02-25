@@ -55,7 +55,7 @@ COP22_master_clean <- function(df) {
 FAST_Intervention<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df,"Standard COP Matrix-R", skip=3)
-  
+
   # Drop columns you don't need and rename  
   df<- df %>% dplyr::select( -c('Global','Prime Partner DUNS','Award Number',
                                 'Appropriation Year', 'Initiative',
@@ -78,10 +78,7 @@ FAST_Intervention<-function(df){
   
   #Convert columns into characters and numeric
   df<-df%>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`,`Record Type`,`Funding Agency`,
-                          `Prime Partner Name`,`Mechanism Name`,`Is Indigenous Prime Partner`,
-                          `Prime Partner Type`,`Program Area`,`Sub Program Area`,`Interaction Type`,
-                          `Beneficiary`,`Sub Beneficiary`,`Digital Health Investments`), funs(as.character)) 
+    dplyr::mutate_at(vars(`Planning Cycle`: `Cost Type`, `Digital Health Investments`), funs(as.character)) 
   
     #remove N/A's
     #Drop all rows without an OU specified 
@@ -104,7 +101,7 @@ FAST_Intervention<-function(df){
 FAST_CCA<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df,"Standard COP Matrix-R", skip=3)
-  
+
   # Drop columns you don't need and rename  
   df<- df %>% dplyr::select( -c('Global','Prime Partner DUNS','Award Number', 'Cost Type',
                                 'Appropriation Year',  'Initiative',
@@ -137,10 +134,7 @@ FAST_CCA<-function(df){
 
   #Convert columns into characters and numeric
   df<-df%>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`,`Record Type`,`Funding Agency`,
-                          `Prime Partner Name`,`Mechanism Name`,`Is Indigenous Prime Partner`,
-                          `Prime Partner Type`,`Program Area`,`Sub Program Area`,`Interaction Type`,
-                          `Beneficiary`,`Sub Beneficiary`), funs(as.character)) 
+    dplyr::mutate_at(vars(`Planning Cycle`:`Sub Beneficiary`), funs(as.character)) 
  
   #Add in agency category column to group agencies
   df<-df %>% agency_category_fast()
@@ -175,7 +169,6 @@ FAST_Initiative<-function(df){
                             "Sub Beneficiary" =`Minor Beneficiary`,
                             "New Funding" =`Total New Funding Sources`,
                             "Applied Pipeline" =`Applied Pipeline Amount`)
-  
   #Pivot COP Budget New Funding & COP Budget Pipeline to 'funding_type' with value as 'Total Planned Funding'
   df <- df %>% gather(`Funding Type`,`Total Planned Funding`, `New Funding`:`Applied Pipeline`)
   
@@ -187,10 +180,7 @@ FAST_Initiative<-function(df){
   
   #Convert columns into characters and numeric
   df<-df%>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`,`Record Type`,`Funding Agency`,
-                          `Prime Partner Name`,`Mechanism Name`,`Is Indigenous Prime Partner`,
-                          `Prime Partner Type`,`Program Area`,`Sub Program Area`,`Interaction Type`,
-                          `Beneficiary`,`Sub Beneficiary`), funs(as.character)) 
+    dplyr::mutate_at(vars(`Planning Cycle`:`Funding Type`), funs(as.character)) 
   
   #Replace NAs in numeric columns
   df <- df %>% dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))
