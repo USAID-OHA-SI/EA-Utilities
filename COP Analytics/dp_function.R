@@ -40,14 +40,16 @@ library(glitr)
                   `Data Stream` = "MER",
                   `Planning Cycle`="COP22")
     
-    agency_category_fast<-function(df){
-         df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+    #df<-df %>% agency_category_fast()
+ 
+    df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
            mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
                                              ifelse(`Agency Category` == "USAID/WCF", "USAID",
                                                     ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                                           ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup", "Dedup","Other"))))) %>% 
+                                                           ifelse(`Agency Category` == "Dedupe adjustments Agency","Dedupe", "Other"
+                                                                 ))))) %>% 
            dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
-       } 
+      
        
     df<-df %>%
       dplyr::mutate(`Program Area` = dplyr::case_when(Indicator == "HTS_TST_POS" ~ "HTS",
