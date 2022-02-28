@@ -135,12 +135,15 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 ```{r}
   #bind all data frames
   df.COP22PlanningDataset<-bind_rows(df.Intervention,df.CCA, df.Initiative,  
-                                    df.Commodities, df.Earmarks_IM) %>% 
+                                    df.Commodities_pre, df.Earmarks_IM) %>% 
   COP22_master_clean()
-
+  
+  df.COP22PlanningDataset<-left_join(df.COP22PlanningDataset, df.MechsList, by = "Mechanism ID")     %>% dplyr::rename("Country" = `Operating Unit`)
+      
+  
   #add in Operating Unit
    df.COP22PlanningDataset <- merge(df.COP22PlanningDataset, df.OU_Country, by = "Country")
-    
+    #dplyr::rename("Country" = `Operating Unit`)
   #RUN IF HAVE FASTS AND DATAPACK 
   df.COP22PlanningDataset_Final <-bind_rows(df.COP22PlanningDataset,df_dp) 
 
@@ -149,7 +152,7 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 
 ##Step 7:Review Data
 ```{r}
-  unique(df.COP22PlanningDataset$`Data Stream`)
+  unique(df.COP22PlanningDataset$`Agency Category`)
   unique(df.COP22PlanningDataset_Final$`Program Area`)
   glimpse(df.Earmarks_OU)
   df.COP21PlanningDataset%>%
@@ -161,7 +164,7 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 ##Step 8: Write the file to output folder.
 Update the date
 ```{r}
-  write_csv(df.COP22PlanningDataset,here("COP22 TOOLS/FAST_DATAPACK_02_23_22_v1.csv"))
+  write_csv(df.COP22PlanningDataset,here("COP22 TOOLS/FAST_DATAPACK_02_25_22_v1.csv"))
 ```
 
 ##Additional Steps
