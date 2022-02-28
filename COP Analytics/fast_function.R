@@ -38,12 +38,13 @@ interaction_type_fast <- function(df){
 
 COP22_master_clean <- function(df) {
   df <- df %>%
+  dplyr::select( -c('Operating Unit')) %>% 
   dplyr::filter(`Total Planned Funding` !=0) %>%
   dplyr::mutate_at(vars(`COP Budget New Funding`),~replace_na(.,0))%>%
   dplyr::mutate_at(vars(`COP Budget Pipeline`),~replace_na(.,0)) %>% 
   dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
-  dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
-  dplyr::rename("Country" = `Operating Unit`)
+  dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) #%>% 
+  #dplyr::rename("Country" = `Operating Unit`)
   
   
 }
@@ -57,7 +58,7 @@ FAST_Intervention<-function(df){
   df<-read_xlsx(df,"Standard COP Matrix-R", skip=3)
 
   # Drop columns you don't need and rename  
-  df<- df %>% dplyr::select( -c('Global','Prime Partner DUNS','Award Number',
+  df<- df %>% dplyr::select( -c('Operating Unit','Global','Prime Partner DUNS','Award Number',
                                 'Appropriation Year', 'Initiative',
                                 'Funding Category','GAP':'ESF', 
                                 'Water':'AB/Y Denominator'))%>%
@@ -82,7 +83,7 @@ FAST_Intervention<-function(df){
   
     #remove N/A's
     #Drop all rows without an OU specified 
-    df <- df %>%  drop_na('Operating Unit')
+    #df <- df %>%  drop_na('Operating Unit')
   
   #replace NAs with 0s
   df<-df%>%
@@ -319,20 +320,10 @@ FAST_Earmarks_IM<-function(df){
     dplyr::mutate(`Total Planned Funding`=as.numeric(`Total Planned Funding`))
   
   #Add in agency category column to group agencies
-  agency_category_fast<-function(df){
-    df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
-      mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
-                                        ifelse(`Agency Category` == "USAID/WCF", "USAID",
-                                               ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                                      ifelse(`Agency Category` =="Dedup", "Dedup","Other"))))) %>% 
-      dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
-  }
+  df<-df %>% agency_category_fast()
   
   #recode values to match naming in Budget-ER-MER Dataset
-    interaction_type_fast <- function(df){
-      df<-df %>% dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery",
-                                                           "NSD"= "Non Service Delivery"))
-    }
+  df<- df %>% interaction_type_fast() 
   
   return(df)
 }
