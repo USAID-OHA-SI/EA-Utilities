@@ -18,11 +18,15 @@ library(glitr)
 
 #COP22 Datapack Function
   #the first 2 steps, reading in files, mapping dataframe are in the direct code#
- 
+ glimpse(df_all)
   datapack_im_tab<-function(df){
      df<- df %>%
     get_names() %>% 
+    dplyr::filter(standardizeddisaggregate != "KeyPop/HIVStatus") %>% 
+    dplyr::filter(standardizeddisaggregate != "KeyPop/Result") %>%
     dplyr::filter(standardizeddisaggregate != "KeyPop") %>%
+    dplyr::filter(standardizeddisaggregate != "Age/Sex/DREAMS") %>% 
+    dplyr::filter(standardizeddisaggregate != "Age/Sex/Preventive") %>% 
     dplyr::group_by(operatingunit, countryname, fundingagency, mech_code, primepartner, mech_name, indicator, fiscal_year, numeratordenom) %>%
     dplyr::summarise(targets = sum(targets, na.rm = TRUE)) %>% 
     dplyr::ungroup() %>% 
