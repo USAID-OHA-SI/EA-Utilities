@@ -164,7 +164,8 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 ##Step 8: Write the file to output folder.
 Update the date
 ```{r}
-  write_csv(df.COP22PlanningDataset,here("COP22 TOOLS/FAST_03_09_22.csv"))
+  write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
+  write_csv(df_all,here("COP22 TOOLS/Datapack_03_14_22.csv"))
 ```
 
 ##Additional Steps
