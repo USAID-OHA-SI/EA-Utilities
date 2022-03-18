@@ -1,6 +1,6 @@
 ---
 title: |
-  | \LARGE \textbf{\textcolor{usaid_red}{`r params$fiscal_yr` Expenditure Briefer: `r params$ou`}} 
+  | \LARGE \textbf{\textcolor{usaid_red}{`r fiscal_yr` Expenditure Briefer: `r params$ou`}} 
 geometry: margin=2cm
 output: 
   pdf_document:
@@ -36,7 +36,6 @@ header-includes:
 
 params:
   ou: "Angola"
-  fiscal_yr: 2021
       
 ---
 ```{r setup, include=FALSE}
@@ -69,19 +68,20 @@ knitr::opts_chunk$set(echo = FALSE)
 # # Below code sets working directory to source file.
 # setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 # 
+# fiscal_yr <- 2021
 # temp_dir <- "temp"
 # git_dir <- "C:/Users/davidsong/Desktop/USAID"
 # git_src <- glue("{git_dir}/GitHub/stacks-of-hondos/scripts/utilities.R")
 # source(git_src)
 # source("er_briefer_source.R")
 # 
-# df_fsd_full <- read_csv(glue("{temp_dir}/df_fsd.csv"))
-# df_msd_full <- read_csv(glue("{temp_dir}/msd_tgt.csv"))
-# df_hrh_full <- read_csv(glue("{temp_dir}/df_hrh.csv"))
+# df_fsd_temp <- read_csv(glue("{temp_dir}/df_fsd.csv"))
+# df_msd_temp <- read_csv(glue("{temp_dir}/msd_tgt.csv"))
+# df_hrh_temp <- read_csv(glue("{temp_dir}/df_hrh.csv"))
 ################################################################################
 glamr::load_secrets()
 
-df_fsd <- df_fsd_full %>%
+df_fsd <- df_fsd_temp %>%
   dplyr::filter(operatingunit == params$ou)
 
 # Budget exec data, similar to how prep_fsd creates dataframe
@@ -89,23 +89,23 @@ df_budget_exec <- fsd_prep_budget_ex(df_fsd)
 
 fsd_tgt <- gen_fsd_tgt(df_fsd)
 
-msd_tgt<- df_msd_full %>%
+msd_tgt<- df_msd_temp %>%
   dplyr::filter(operatingunit == params$ou)
 
-df_hrh <- df_hrh_full %>%
+df_hrh <- df_hrh_temp %>%
   dplyr::filter(operatingunit == params$ou) %>%
   glamr::remove_sch("SGAC")
 
-# rm(df_fsd_full)
-# rm(df_msd_full)
-# rm(df_hrh_full)
+# rm(df_fsd_temp)
+# rm(df_msd_temp)
+# rm(df_hrh_temp)
 # gc()
 
 ```
 \newpage
 # Introduction
 
-The purpose of this briefer is to highlight the financial performance and trends of `r params$ou` that can be showcased or used for COP`r params$fiscal_yr-1999` preparation.  These analyses are not intended to replace the EA Tableau dashboards, but rather to provide a summary of key, high-level expenditure data which could lead to more detailed, tailored asks from country leadership during COP discussions For questions please reach out to your EA POC or gh.oha.ea\@usaid.gov. All visuals exclude M\&O unless noted otherwise.
+The purpose of this briefer is to highlight the financial performance and trends of `r params$ou` that can be showcased or used for COP`r fiscal_yr-1999` preparation.  These analyses are not intended to replace the EA Tableau dashboards, but rather to provide a summary of key, high-level expenditure data which could lead to more detailed, tailored asks from country leadership during COP discussions For questions please reach out to your EA POC or gh.oha.ea\@usaid.gov. All visuals exclude M\&O unless noted otherwise.
 
 
 # Sample questions \& analytics utilizing PEPFAR financial data for USAID Programming
@@ -296,17 +296,6 @@ hts_ue <- get_program_specific(df_ue_indiv, programs="HTS")%>%
   mutate(across(4:5, formattable::currency,digits=0)) %>%
   mutate(across(6:8, function(x) x/100)) %>%
   mutate(across(6:8, formattable::percent,digits=0))
-
-# out1<-ordered_table(hts_ue, "fundingagency")
-# 
-# out2<- hts_ue %>% count(across("fundingagency"))
-# 
-# out3<- df_ue %>% count(across("fundingagency"))
-# 
-# out4<- get_ou_pa %>% count(across("fundingagency"))
-# 
-# unique(df_fsd_full$fundingagency)
-
 
 hts_ue %>%
   select(-c(fundingagency,program)) %>%
