@@ -172,9 +172,9 @@ FAST_Initiative<-function(df){
                             "Applied Pipeline" =`Applied Pipeline Amount`)
   #Pivot COP Budget New Funding & COP Budget Pipeline to 'funding_type' with value as 'Total Planned Funding'
   df <- df %>% gather(`Funding Type`,`Total Planned Funding`, `New Funding`:`Applied Pipeline`)
-  
+   
   #Pivot GAP, GHP-STATE, GHP-USAID to 'funding_account' with value as 'COP Budget New Funding'
-  df <- df %>% gather(funding_account,`COP Budget New Funding`, `GAP`:`GHP-USAID`)
+  #df <- df %>% gather(funding_account,`COP Budget New Funding`, `GAP`:`GHP-USAID`)
   
   #Create variable 'Data stream' with Initiative
   df <- df %>% dplyr::mutate(`Data Stream`="FAST Initiative") #consider renaming to specify FAST
