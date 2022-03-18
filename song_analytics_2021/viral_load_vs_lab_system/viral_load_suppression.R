@@ -84,7 +84,7 @@ mer_nat <- mer_nat_full %>%
   arrange(operatingunit, countryname, fiscal_year, 
           indicator, standardizeddisaggregate) 
 
-old_msd_path <- "C:/Users/davidsong/Desktop/USAID/viral_load/MER_Structured_Datasets_OU_IM_FY15-19_20220211_v1_1.txt"
+old_msd_path <- "C:/Users/davidsong/Desktop/USAID/2_viral_load/MER_Structured_Datasets_OU_IM_FY15-19_20220211_v1_1.txt"
 df_msd_15_18_full <- old_msd_path %>% gophr::read_msd()
 df_msd_15_18 <- gen_msd_tgt(df_msd_15_18_full) %>%
   filter(fiscal_year %in% c(2017, 2018)) %>%
@@ -381,9 +381,18 @@ ggplot(pepfar_ou_plot,
   geom_point(size=2) +
   scale_y_continuous(name = "Viral Load Coverage") + 
   scale_x_continuous(name = "Cumulative Lab System Strengthening Expenditure per PLHIV",
-                     label = scales::dollar_format(prefix="$"))
+                     label = scales::dollar_format(prefix="$")) + 
+  geom_text(aes(label=operatingunit), size=2, vjust=-1)
 
 ggsave("pepfar_ou_vl_vs_spend.png", width=6, height=4)
+
+names(pepfar_ou_plot)
+pepfar_ou_table <- pepfar_ou_plot %>%
+  select(c("operatingunit", "fiscal_year", "VL_coverage", "cum_lab_str_capita")) %>%
+  arrange(desc(cum_lab_str_capita)) %>%
+  rename("cumulative lab system strengthening spending per PLHIV" = "cum_lab_str_capita")
+
+write.csv(pepfar_ou_table, "pepfar_ou_table.csv")
 
 
 ##### Percent change########################
@@ -405,13 +414,32 @@ df_pepfar_change <- df_pepfar_change %>%
                               VL_coverage_2020 >=0.675 & VL_coverage_2020 <0.8~"2020 VL coverage < 80%",
                               VL_coverage_2020 >=0.8 & VL_coverage_2020 <0.85~"2020 VL coverage < 85%",
                               VL_coverage_2020 >=0.85 ~"2020 VL coverage >85%"))
+names(df_pepfar_change)
+
+pepfar_change_table <- df_pepfar_change %>%
+  select(c("operatingunit", "VL_diff", "lab_diff","VL_group")) %>%
+  arrange(desc("cum_lab_diff")) %>%
+  rename("2020-21 change in VL" = "VL_diff",
+         "2020-21 change in cumulative lab system spending per PLHIV" = "lab_diff")
+  
+pepfar_cum_table <- df_pepfar_change %>%
+  select(c("operatingunit", "VL_diff", "lab_diff", "cum_lab_strength_2021", "VL_group")) %>%
+  arrange(desc("cum_lab_strength_2021")) %>%
+  rename("2020-21 change in VL" = "VL_diff",
+         "Cumulative Lab System Strengthening Expenditure 2021" = "cum_lab_strength_2021")
+
+write.csv(pepfar_change_table, "pepfar_change_table.csv")
+write.csv(pepfar_cum_table, "pepfar_cum_table.csv")
+
+
 ggplot(df_pepfar_change, 
        aes(x = lab_diff, y = VL_diff, color=VL_group)) +
   geom_point(size=2) +
   scale_y_continuous(name = "Viral Load Coverage",
                      label = unit_format(unit = "%", scale = 1e2)) + 
   scale_x_continuous(name = "Cumulative Lab System Strengthening Expenditure per PLHIV",
-                     label = scales::dollar_format(prefix="$"))
+                     label = scales::dollar_format(prefix="$"))+
+  geom_text(aes(label=operatingunit), size=2, vjust=-1)
 ggsave("pepfar_percent_chg_per_plhiv.png", width=8, height=4)
 
 
@@ -425,17 +453,19 @@ ggplot(pepfar_chg_drop_outliers,
   scale_y_continuous(name = "Viral Load Coverage",
                      label = unit_format(unit = "%", scale = 1e2, accuracy=1)) + 
   scale_x_continuous(name = "2020 to 2021 change in Cumulative Lab System Strengthening Expenditure per PLHIV",
-                     label = scales::dollar_format(prefix="$"))
+                     label = scales::dollar_format(prefix="$"))+
+  geom_text(aes(label=operatingunit), size=2, vjust=-1)
 ggsave("pepfar_percent_chg_per_plhiv_no_outlier.png", width=8, height=4)
 
 
 # Compare just raw cumulative lab strength, not per PLHIV
 ggplot(df_pepfar_change, 
-       aes(x = cum_lab_diff, y = VL_diff, color=VL_group)) +
+       aes(x = cum_lab_strength_2021, y = VL_diff, color=VL_group)) +
   geom_point(size=2) +
   scale_y_continuous(name = "Viral Load Coverage",
                      label = unit_format(unit = "%", scale = 1e2, accuracy=1)) + 
   scale_x_continuous(name = "Cumulative Lab System Strengthening Expenditure",
-                     label= scales::dollar_format(scale=1e-6, prefix="$", suffix="M"))
+                     label= scales::dollar_format(scale=1e-6, prefix="$", suffix="M"))+
+  geom_text(aes(label=operatingunit), size=2, vjust=-1)
 ggsave("pepfar_percent_chg_total.png", width=8, height=4)
 
