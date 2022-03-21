@@ -1,4 +1,6 @@
 # Version 3.2
+# Purpose: Compiles ARPA templates and pivots for easier reading
+# Updates for version 3.2
 #         * Long pivot and add TOTAL category
 # Author: David Song
 # Date: 2022 Jan 31
@@ -26,15 +28,21 @@ library(tidyverse)
 # Path to where filled templates are
 filled_dir <- "filled_templates"
 
+# This is the beginning of the output file name. See below to modify file type
+### Example: file name becomes: compiled_arpa_2022-03-16.csv
+compiled_file_name_header <- "compiled_arpa"
+
 # Functions ====================================================================
-# Generate OU dataframe, based on OU filename
-gen_df_ou <- function(file_path){
+# Generate mechanism-level dataframe, based on mechanism filename
+### Input: String. Path to an Excel file (a filled ARPA template)
+### output: data.frame. A mechanism-level data.frame with data from template
+gen_df_mech <- function(file_path){
   # Read in data rows
   df_id <- read.xlsx(file_path, 1, rows = 3:4)
   df_data <- read.xlsx(file_path, 2, startRow=1)
   
-  # Create columns with mechanism ID info
-  df_ou <- cbind(operatingunit = df_id$Operating.Unit, 
+  # Create columns with mechanism ID info on 1st page of the filled template
+  df_mech <- cbind(operatingunit = df_id$Operating.Unit, 
                  country = df_id$Country,
                  primepartner = df_id$Partner.Name,
                  mech_code = df_id$Mech.ID,
@@ -43,27 +51,39 @@ gen_df_ou <- function(file_path){
                  df_data) 
   
   # Split glued program:sub-program and beneficiary:sub-beneficiary columns
-  df_ou <- df_ou %>%
+  df_mech <- df_mech %>%
     separate(col="Program.Area", 
              into=c("program", "sub_program"), sep=":.") %>%
     separate(col="Beneficiary", 
              into=c("beneficiary", "sub_beneficiary"), sep=":.")
   
-  return(df_ou)
+  return(df_mech)
 }
 
 # Func: Binds all xlsx's in designated directory together, by ARPA columns
-bind_arpa <- function(dir_path, col_names = cols){
+## Note: This function works for ARPA, Quarterly, and DREAMS templates
+### Inputs: dir_path: String. Path to the main directory that all OU sub-folders live in
+### Output: 
+bind_arpa <- function(dir_path){
+  # List of all files, including sub-folders and files inside subfolders, in our main directory
+  ### Note: full.names=T means that we have the full, complete path to these files
   paths_lst <- list.files(dir_path, full.names=T)
+  # List of all sub-folders in our main directory
   dirs_lst <- list.dirs(dir_path, recursive=F, full.names=T)
+  # Create list of file paths that exclude the paths of the sub-folders themselves (hence using setdiff)
   true_lst <- setdiff(paths_lst, dirs_lst)
   
+  # Initialize dataframe df_arpa with the first mechanism in our directory
+  ### Note: because we initialize our bind with the 1st mechanism found in our directory, 
+  ###       we do not need to hard code what columns to join on. 
+  ### Warning: HOWEVER: If the 1st mechanism has the wrong columns, this rbind will fail.
+  df_arpa <- gen_df_mech(true_lst[1])
   print(true_lst[1])
-  df_arpa <- gen_df_ou(true_lst[1])
-  # bind generated dataframes per xlsx in the directory to one main ARAP dataframe
+  df_arpa <- gen_df_mech(true_lst[1])
+  # Bind generated dataframes per xlsx in the directory to one main ARAP dataframe
   for (file_path in true_lst[-1]){
     print(file_path)
-    df_arpa <- rbind(df_arpa, gen_df_ou(file_path))
+    df_arpa <- rbind(df_arpa, gen_df_mech(file_path))
   }
   
   return(df_arpa)
@@ -71,19 +91,11 @@ bind_arpa <- function(dir_path, col_names = cols){
 
 # Main =========================================================================
 
+## Build out the main dataframe 
 small_df <- bind_arpa(filled_dir)
 
-# df_data <- df_arpa_test[13:32]
-
-# # https://www.geeksforgeeks.org/remove-rows-with-empty-cells-in-r/
-# num_cols <- ncol(df_data)
-# na_lst <- is.na(df_data)
-# na_rows_idx <- rowSums(na_lst)
-# small_df <- df_arpa_test %>%
-#   mutate(na_rows = na_rows_idx)%>%
-#   filter(na_rows != num_cols) %>%
-#   select(-na_rows)
-
+#=================OPTIONAL: Do not use when compiling non-ARPA==================
+## Prepare data.frame for pivoting, to format it as Christy requested
 # convert periods to spaces in column names, before converting them to categories
 names(small_df) <- gsub("\\.", " ", names(small_df))
 
@@ -99,8 +111,10 @@ long_df <- small_df %>%
   mutate(`Activity Description` = case_when(ARPA_category == "Total FY21 Expenditure" ~ NA_character_,
                                           TRUE ~ `Activity Description`)) %>%
   relocate(`Activity Description`, .after = last_col())
-
-# Export data
+#===============================================================================
+#### Export data================================================================
+# Pull date for naming file
 date <- as.character(Sys.Date())
-filename <- glue("compiled_arpa_{date}.csv")
+# Note: file is saved as csv by default
+filename <- glue("{compiled_file_name_header}_{date}.csv")
 write.csv(long_df, filename, na="", row.names=FALSE)

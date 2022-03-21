@@ -1,6 +1,6 @@
 ---
 title: |
-  | \LARGE \textbf{\textcolor{usaid_red}{FY`r params$fiscal_yr` EXPENDITURE REPORT}}
+  | \LARGE \textbf{\textcolor{usaid_red}{FY`r fiscal_yr` EXPENDITURE REPORT}}
   | \LARGE \textbf{\textcolor{usaid_red}{DATA QUALITY REPORT}}
   | \LARGE \textbf{\textcolor{usaid_red}{`r params$ou`}}
 output: pdf_document
@@ -39,10 +39,12 @@ header-includes:
   - \posttitle{\end{flushleft}}
 params:
   ou: "Central Mechanisms"
-  fiscal_yr: 2021
-  
+
 ---
 ```{r setup, include=FALSE}
+#### WARNING: This RMarkdown must be run via iterate_DQR.R, or it will not run. 
+####          This file cannot be run standalone.
+
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(echo = FALSE)
@@ -56,15 +58,10 @@ library(glue)
 library(tidyverse)
 library(formattable)
 
-source('data_quality_source.R')
 
-########  Load Data #####################################
-df_fsd <- read_csv("temp/df_fsd.csv")
-df_msd <- read_csv("temp/df_msd.csv")
-df_hrh <- read_csv("temp/df_hrh.csv")
-df_centrals <- read_csv('2021 Central Mechs.csv')
-
-
+#==============================================================================
+# If OU is Central Mechanisms, filter for only central mechanisms. Otherwise,
+# filter for the OU in question
 if (params$ou == "Central Mechanisms"){
   fsd_ou <- df_fsd[df_fsd$mech_code %in% df_centrals$`Mechanism ID`,]
   msd_ou <- df_msd[df_msd$mech_code %in% df_centrals$`Mechanism ID`,]
@@ -75,43 +72,46 @@ if (params$ou == "Central Mechanisms"){
   hrh_ou <- df_hrh %>% filter(operating_unit == params$ou)
 }
 
+# Abridge mechanism names so that they fit in the tables without extensive wrapping
 fsd_ou <- fsd_ou %>% mutate(mech_name = lapply(mech_name, abridge, max_len=42))
 msd_ou <- msd_ou %>% mutate(mech_name = lapply(mech_name, abridge, max_len=42))
 hrh_ou <- hrh_ou %>% mutate(mech_names = lapply(mech_name, abridge, max_len=42))
 
+# Generate dataframe of mechs that have too low or too high budget execution
+df_perc_exp_im <- exp_perc_budg_check_im(fsd_ou) %>%
+  ungroup()
 
-
+# Generate dataframe of mechanisms that have exactly matching budget and expenditure
 df_budg_exp<- fsd_ou %>%
   check_budg_exp() %>% 
   ungroup()
 
-df_other <- #df_fsd %>%
-  fsd_ou %>%
+# dataframe of mechs that have >10% Other:Other
+df_other <- fsd_ou %>%
   percent_other_check() %>% 
   ungroup()
 
+# dataframe of mechs that have program management > 40% of expenditure
 df_pm <- percent_pm_check(fsd_ou) %>%
   ungroup()
 
-df_perc_exp_im <- exp_perc_budg_check_im(fsd_ou) %>%
-  ungroup()
+# dataframe of mechs that have ER data but no HR data
+df_hrh_check <- hrh_check(fsd_ou, hrh_ou)
 
+# dataframe of mechs with too low/high budget execution at the program level
 df_perc_exp_pa<- exp_perc_budg_check_pa(fsd_ou) %>%
   ungroup()
 
-df_hrh_check <- hrh_check(fsd_ou, hrh_ou)
-
+# Calculate how many mechs trigger each check. An alternate "empty" table is printed
+#     if there are no mechs triggering a certain check
 total_num_mechs <- length(unique(df_fsd$mech_code))
 uniq_pe_im <- length(unique(df_perc_exp_im$mech_code))
 uniq_pe_pa <- length(unique(df_perc_exp_pa$mech_code))
-
 uniq_budg_exp <- length(unique(df_budg_exp$mech_code))
 uniq_other <-length(unique(df_other$mech_code))
 uniq_pm <- length(unique(df_pm$mech_code))
 uniq_hrh <- length(unique(df_hrh_check$mech_code))
 
-# perc_exp_good <- na.omit(df_perc_exp[df_perc_exp$perc_exp >= 0.9 & df_perc_exp$perc_exp <=1.1, ])
-# good_perc_exp <- length(unique(perc_exp_good$mech_code))
 ```
 
 # \textcolor{usaid_red}{INTRODUCTION}
@@ -129,29 +129,41 @@ Data quality checks performed include:
 The following table shows mechanisms that spent less than 80\% or more than 120\% of their budget. Missions may consider following up with partners to ensure 1.) reporting is accurate and there have been no errors, and/or 2.) ensure that they have access to rationale/context for the apparent misalignment between expenditure and budget.  This will be especially important for any IMs with program performance concerns. At the end of this report, is another similar table that performs the same check but for each program area for the mechanism.
 
 ```{r, echo=FALSE}
+# List of column names to use for the actual printed table
 col_perc_exp_im <- c("Mechanism Code", "Mechanism Name", 
                   "Total Expenditure", "Total Budgeted", "% Total Expenditures of Budget")
 
+# If any mechanism triggers this check, apply formatting for currency and percents
 if (uniq_pe_im !=0){
   df_pe_im <- df_perc_exp_im %>%
-  mutate(sum_fast = currency(sum_fast)) %>%
-  mutate(sum_exp = currency(sum_exp)) %>%
-  mutate(perc_exp = percent(perc_exp)) %>%
-  mutate(perc_exp = as.character(perc_exp))
-df_pe_im$perc_exp[is.na(df_pe_im$perc_exp)] <- '-'
+    mutate(sum_fast = currency(sum_fast)) %>%
+    mutate(sum_exp = currency(sum_exp)) %>%
+    mutate(perc_exp = percent(perc_exp)) %>%
+    mutate(perc_exp = as.character(perc_exp))
+  # Set nulls to hyphens
+  df_pe_im$perc_exp[is.na(df_pe_im$perc_exp)] <- '-'
 
-df_pe_im %>%
-  kbl(format = "latex", col.names = col_perc_exp_im, longtable=T,
-      booktabs = T, escape=T, caption = "Expenditure as Percent of Budget, IM-level") %>%
-  kable_paper(latex_options = c("hold_position", "repeat_header"),
-              font_size = 9)%>%
-  # https://tex.stackexchange.com/questions/98955/auto-resize-tabular-row-height
-  row_spec(0, extra_latex_after = "[0.7cm]", bold=TRUE) %>%
-  column_spec(1, width = '5em') %>%
-  column_spec(2, width = '15em') %>%
-  column_spec(3, width = '5em') %>%
-  collapse_rows(columns = 1:2, valign="top")
+  # Kable formatting is not intuitive, and more art than science. Order of functions matter, unlike GT.
+  # See here: https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
+  df_pe_im %>%
+    # longtable is required for tables that may span across multipel pages
+    kbl(format = "latex", col.names = col_perc_exp_im, longtable=T,
+        # Set escape to "TRUE" due to formatting above requiring it for LaTeX to read it correctly
+        booktabs = T, escape=T, caption = "Expenditure as Percent of Budget, IM-level") %>%
+    # repeat_header is helpful for readers, as each new page a table is on will repeat the header
+    # hold_position is required, otherwise Kables float to the bottom of the page
+    kable_paper(latex_options = c("hold_position", "repeat_header"),
+                font_size = 9)%>%
+    # One potential workaround to "hiding" a column required for ordering data, but not wanted for dispaly
+    # https://tex.stackexchange.com/questions/98955/auto-resize-tabular-row-height
+    row_spec(0, extra_latex_after = "[0.7cm]", bold=TRUE) %>%
+    column_spec(1, width = '5em') %>%
+    column_spec(2, width = '15em') %>%
+    column_spec(3, width = '5em') %>%
+    collapse_rows(columns = 1:2, valign="top")
 } else{
+  # Note: If there is no data because the check was not triggered by any mechanism, an 
+  #       empty table like this is presented instead
     data.frame(list("No Mechanisms were flagged")) %>% 
     kbl(format = "latex", col.names = NULL)%>%
     kable_paper(latex_options = c("hold_position"))
@@ -165,22 +177,28 @@ df_pe_im %>%
 If budgets exactly match expenditures at the intervention level, they are listed below. This is to flag any mechanisms that may be reporting their expenditures so that they are identical to the budgets set in FAST so that there appears to be 0\% variance. While we would like to achieve close alignment between expenditures and budgets is unlikely that they would match exactly.  Teams may want to consider discussing this with partners and ensure reporting represents actual cash expenditures as directed by PEPFAR guidance.   
 
 ```{r, echo = FALSE}
-budg_exp_title<- glue("Mechanisms with Expenditures Matching Budget FY{params$fiscal_yr}")
+# Table title
+budg_exp_title<- glue("Mechanisms with Expenditures Matching Budget FY{fiscal_yr}")
+# Table column names
 col_names <- c("Mech code", "Mechanism Name", "Intervention",
                "Total Planned Budget", "Total Expenditure")
+
+# Check if any mechs triggered check
 if (uniq_budg_exp !=0){
   df_budg_exp %>%
-  select(-diff) %>%
-  mutate(sum_fast = currency(sum_fast)) %>%
-  mutate(sum_exp = currency(sum_exp)) %>%
-  kbl(format = "latex", caption = budg_exp_title, col.names = col_names, longtable=T,
+    select(-diff) %>%
+    # format columns as currency 
+    mutate(sum_fast = currency(sum_fast)) %>%
+    mutate(sum_exp = currency(sum_exp)) %>%
+    kbl(format = "latex", caption = budg_exp_title, col.names = col_names, longtable=T,
       booktabs=T, escape=T) %>%
-  row_spec(0,bold=TRUE) %>% 
-  kable_paper(latex_options= c("hold_position", "repeat_header")) %>% 
-  column_spec(1, width = '3em') %>%
-  column_spec(2, width = '15em') %>%
-  column_spec(3, width = '7em') %>%
-  collapse_rows (columns = 1:2, valign="top")
+    # bold the column headers
+    row_spec(0,bold=TRUE) %>% 
+    kable_paper(latex_options= c("hold_position", "repeat_header")) %>% 
+    column_spec(1, width = '3em') %>%
+    column_spec(2, width = '15em') %>%
+    column_spec(3, width = '7em') %>%
+    collapse_rows (columns = 1:2, valign="top")
 } else{
   data.frame(list("No Mechanisms were flagged")) %>% 
   kbl(format = "latex", col.names = NULL)%>%
@@ -198,10 +216,12 @@ col_other <- c("Mech code", "Mechanism Name",
 if (uniq_other != 0){
   df_other %>%
   select(-operatingunit, -cost_category, -sub_cost_category) %>%
+    # Format column as percent
   mutate(perc_exp = percent(perc_exp)) %>%
   kbl(format = "latex", col.names = col_other, longtable=T, booktabs=T,
       caption = 'Mechanisms  with 10 Percent Expenditures as “Other: Other”') %>%
   kable_paper(latex_options= c("hold_position", "scale_down")) %>%
+    # Bold column header
   row_spec(0,bold=TRUE) %>%
   column_spec(1, width = '3em') %>%
   column_spec(2, width = '25em') %>%
@@ -248,10 +268,13 @@ The table below flags if an IM meets a certain threshold of MER results that are
 ```{r, echo=FALSE}
 col_cdv <- c("Mechanism Code", "Mechanism Name", " Indicator",
              "Results", "Missing Expenditure Category")
+
+# Use pmap to iterate across all the correct filters and string lists for the MER vs. FSD check
 df_cdv <- 
   pmap(list(msd_str_lst, msd_cond, fsd_filter_lst, fsd_str_lst), 
        ~cross_data_check(msd_ou, fsd_ou, msd_filter = ..1, 
                          cond = ..2, fsd_filter = ..3, fsd_str = ..4)) %>%
+  # pmap returns a list of data.frames, which we bind together
   bind_rows() %>%
   group_by(indicator)
 
@@ -269,12 +292,12 @@ if (len_cdv !=0){
   row_spec(0,bold=TRUE) %>%
   column_spec(1, width = '7em') %>%
   column_spec(2, width = '15em') %>%
+    # Pack_rows is used to organize rows in groups by indicator
   pack_rows(index = setNames(rle(df_cdv$indicator)[[1]],
                              rle(df_cdv$indicator)[[2]]),
             color = "white",
             background = "gray")
-  # %>%
-  # remove_column(columns = 3)
+
 } else{
   data.frame(list("No Mechanisms were flagged")) %>% 
     kbl(format = "latex", col.names = NULL)%>%
@@ -285,6 +308,7 @@ if (len_cdv !=0){
 The following table shows which mechanisms have reported in Expenditure Reporting but did not report to the HRH Inventory. **All mechanisms which report to ER should also report to the HRH inventory this year.**
 Have these highlighted mechanisms complete the HRH template and upload their data to the HRH processor app in DATIM during data cleaning (Dec. 1st - 17th).
 ```{r, echo=FALSE}
+# See first section for explanation on Kable, col_names, etc.
 hrh_col_names <- c("Mechanism Code", "Mechanism Name", "Sum Expenditure")
 hrh_title <- "Mechanisms that reported expenditure but not HRH data"
 if (uniq_hrh != 0){
@@ -306,10 +330,12 @@ if (uniq_hrh != 0){
 The following table shows each program area for a mechanism that spent less than 80\% or more than 120\% of their budget. Missions may consider following up with partners to ensure 1.) reporting is accurate and there have been no errors, and/or 2.) ensure that they have access to rationale/context for the apparent misalignment between expenditure and budget.  This will be especially important for any IMs with program performance concerns. 
 
 ```{r, echo=FALSE}
+# See first section for explanation on Kable, col_names, etc.
 col_perc_exp_pa <- c("Mechanism Code", "Mechanism Name", "Program Area",
                   "Total Expenditure", "Total Budgeted", "% of Budget")
 
 if (uniq_pe_pa != 0){
+  # Format columns as currency and  percent
   df_pe_pa <- df_perc_exp_pa %>%
   mutate(sum_fast = currency(sum_fast)) %>%
   mutate(sum_exp = currency(sum_exp)) %>%
