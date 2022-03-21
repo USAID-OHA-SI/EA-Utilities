@@ -1,20 +1,8 @@
 
 #might not need all of these
 library(tameDP) #version 3.2.4
-library(purrr)
-library(glamr)
-library(tidyverse)
-library(gophr)
-library(gt)
-library(glue)
-library(webshot)
-library(dplyr)
-library(devtools)
-library(tidyr)
-library(gisr)
-library(scales)
-library(glitr)
 
+ 
 #COP22 Datapack Function
   #the first 2 steps, reading in files, mapping dataframe are in the direct code#
 
