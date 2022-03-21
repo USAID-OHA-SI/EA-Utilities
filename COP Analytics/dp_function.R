@@ -18,7 +18,7 @@ library(glitr)
 
 #COP22 Datapack Function
   #the first 2 steps, reading in files, mapping dataframe are in the direct code#
- glimpse(df_all)
+
   datapack_im_tab<-function(df){
      df<- df %>%
     get_names() %>% 
