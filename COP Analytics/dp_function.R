@@ -37,7 +37,7 @@ library(tameDP) #version 3.2.4
            mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
                                              ifelse(`Agency Category` == "USAID/WCF", "USAID",
                                                     ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                                           ifelse(`Agency Category` == "Dedupe adjustments Agency","Dedupe", "Other"
+                                                           ifelse(`Agency Category` == "Dedup","Dedupe", "Other"
                                                                  ))))) %>% 
            dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
       
