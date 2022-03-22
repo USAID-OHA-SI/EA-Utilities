@@ -1,8 +1,8 @@
 # Title: Global USAID GH Staffing Final Master Dataset
 # Author: Vanessa Da Costa
-# Last updated: "Oct 22, 2021" ##this will need to be updated for the February 2022 Data##
+# Last updated: "March 21, 2022" ##updated for the February 2022 Data Pull#
 # Purpose:Combine historical/USAID GH Staffing Dataset with new data
-#This code can be updated with each data pull
+#This code should be updated with each data pull where noted
 --------------------------------
 #STEP 1: Install packages and run libraries
 install.packages("tidyr")
@@ -43,7 +43,8 @@ example(data.table)                   # run the examples section of ?data.table
 ?data.table                           # read
 ?fread                                # read
 update.packages()                     # keep up to date
-here()
+
+
 here::here("USAID Staffing Updates")
 
 
@@ -51,7 +52,7 @@ here::here("USAID Staffing Updates")
 
   ##UPDATE Master File with latest data collection date.
     #rEMINDER: DELETE 'MASTER' file  & completion tracker from file folder and ensure only country files are in it##
-  df1<-read_excel("Final Aggregated Datasets/September 2021 Final Dataset/Staffing_Master_Dataset_Oct25_AddedNewUniqueIDs.xlsx") %>% 
+  df1<-read_excel("Final Aggregated Datasets/September 2021 Final Dataset/Staffing_Master_Dataset_Oct25_AddedNewUniqueIDs_V2.xlsx") %>% 
     dplyr::mutate(`datacollection_date`= as.character(`datacollection_date`)) %>% 
     dplyr::mutate(`hiringcascade`= as.character(`hiringcascade`)) %>% 
     dplyr::mutate(`comments`=" ")
@@ -127,8 +128,8 @@ Staffing_Aggregated_Final<- df4 %>%  dplyr::select('country','Operating Unit', '
 
 
 ##PART 2: STAFFLING LEVELS by OU x Healthfunding
-
-Staffing_Levels_Mar21<-read_excel("Final Aggregated Datasets/TotalStaffCounts_Aggregated_Dataset_May6.xlsx")
+#Only update/run this section if total staffing data was collected
+Staffing_Levels_Oldmonth<-read_excel("Final Aggregated Datasets/TotalStaffCounts_Aggregated_Dataset_May6.xlsx") #update file name
 
 #Aggregate staffing levels tab
 read_xlsx_files_2 <- function(x){
@@ -136,16 +137,19 @@ read_xlsx_files_2 <- function(x){
     dplyr::mutate(`country`= as.character(`country`)) %>% 
     dplyr::mutate(`healthfunding`= as.character(`healthfunding`)) %>% 
     dplyr::mutate(`Verification`= as.character(`Verification`)) %>% 
-    dplyr::mutate(`Number of staff reported in March 2021`= as.character(`Number of staff reported in March 2021`)) %>% 
+    #update month/yyyy
+    dplyr::mutate(`Number of staff reported in March 2021`= as.character(`Number of staff reported in March 2021`)) %>%
     dplyr::mutate(`New Number of Staff`= as.character(`New Number of Staff`)) %>% 
+    #update month/yyyy
     dplyr::rename("Total Staff Sep2021" = `Number of staff reported in March 2021`) %>% 
     dplyr::filter(healthfunding != "")     #to remove any data that was added outside of the table
   
 }
 
 
-Staffing_Levels_Sep21 <- lapply(Sep_Data, read_xlsx_files_2 ) %>% 
+Staffing_Levels_newmonth<- lapply(Sep_Data, read_xlsx_files_2 ) %>% 
   bind_rows() %>% 
+  #updatemonth
   dplyr::mutate(`Total Staff Sep 2021`= ifelse(is.na(Verification) | Verification == "Verified- No Changes",  `Total Staff Sep2021`, `New Number of Staff`)) %>% 
   replace(., is.na(.), "") %>%  
   dplyr::mutate(`Total Staff Sep2021`= as.numeric(`Total Staff Sep 2021`)) %>% 
@@ -156,17 +160,18 @@ Staffing_Levels_Sep21 <- lapply(Sep_Data, read_xlsx_files_2 ) %>%
 df.OU<-read_excel("Reference/OU_Country.xlsx")
 
 #Add OUs to the master staffing levels final dataset
-Staffing_Levels_Sep21_2<- left_join(Staffing_Levels_Sep21, df.OU, by = "country") %>% 
+Staffing_Levels_draft<- left_join(Staffing_Levels_newmonth, df.OU, by = "country") %>% 
   dplyr::mutate(across(where(is.numeric), round, 0))
 
 
-Staffing_Levels_Final<- left_join(Staffing_Levels_Sep21_2, Staffing_Levels_Mar21, by = "country") %>% 
+Staffing_Levels_Final<- left_join(Staffing_Levels_draft, Staffing_Levels_oldmonth, by = "country") %>% 
   dplyr::mutate(across(where(is.numeric), round, 0)) %>% 
+  #update list of variables
   dplyr::select('country','Operating Unit', 'healthfunding', 'Total Staff May2021', 'Total Staff Mar2021', 'Total Staff Sep2021') 
 
 #Export Data  
 
-write_csv(Staffing_Aggregated_Final,"Staffing_Master_Dataset_March1822_MissingNewUniqueIDs.csv")
+write_csv(Staffing_Aggregated_Final,"Staffing_Master_Dataset_March2122_MissingNewUniqueIDs.csv")
 
 #On updates with total staffing
 write_csv(Staffing_Levels_Sep21,"TotalStaffCounts_Aggregated_Dataset_Oct22.csv")
