@@ -177,10 +177,10 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-  write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_03_22_22_V2.csv"))
+  write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_03_23_22.csv"))
 
 ##DATAPACK OUTPUT
-  write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_03_22_22.csv"))
+  write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_03_23_22.csv"))
 ```
 
 ##Additional Steps
@@ -203,14 +203,18 @@ df.DHI <-df.Intervention %>%
 ##STEP 10: DATAPACK OUTPUT
 ```{r}  
 
-#WITHDISAGGREGATES     
-df_datapack_all <-df_all %>%  
-dplyr::mutate(`Agency Category` = `fundingagency`) %>% 
-dplyr::mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
-                                      ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                             ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup","Other")))) 
+#WITHDISAGGREGATES  #Requested 3.24  
+df_datapack_all<-df_all %>% 
+  get_names() %>% 
+    dplyr::mutate(`Agency Category` = `fundingagency`)%>%
+       dplyr:: mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                             ifelse(`Agency Category` == "USAID/WCF", "USAID",
+                                                    ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                                           ifelse(`Agency Category` == "Dedup","Dedupe", "Other"
+                                                                 ))))) %>% 
+           dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
 
-  write_csv(df_datapack_all,"COP21 FAST and Data Pack Submissions/Dataset/Datapack_Master_05_25_v1.csv")  
+  write_csv(df_datapack_all,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_03_24_22.csv") ) 
 
 #WITHOUTDISAGGREGATES
   df_datapack_agg<- df_all %>%
