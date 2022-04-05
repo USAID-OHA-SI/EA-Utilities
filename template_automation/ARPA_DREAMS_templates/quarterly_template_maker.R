@@ -36,6 +36,8 @@ if(!require(httpuv)){install.packages('httpuv')}
 if(!require(glamr)){remotes::install_github("USAID-OHA-SI/glamr", build_vignettes = TRUE)}
 if(!require(gophr)){remotes::install_github("USAID-OHA-SI/gophr", build_vignettes = TRUE)}
 
+install.packages("openxlsx")
+library(httpuv)
 library(openxlsx)
 library(glamr)
 library(gophr)
@@ -45,7 +47,7 @@ library(tidyverse)
 library(fs)
 
 # Set path to where the where GitHub folder can be found
-home_dir <- "C:/Users/davidsong/Desktop/USAID"
+home_dir <- "C:/Users/jmontespenaloza/Documents"
 uploader_path <- "GitHub/EA-Utilities/upload_dir_to_gdrive.R"
 # Use google drive uploader function
 source(glue("{home_dir}/{uploader_path}"))
@@ -53,28 +55,30 @@ source(glue("{home_dir}/{uploader_path}"))
 # Global Variables======================================================================
 
 # Directory name (used both on local system and in Google Drive, see "Generate File" section of code)
-fisc_dir <- "test_folder"#"ARPA_templates"
+fisc_dir <- "C:/Users/jmontespenaloza/Documents/test_folder"#"ARPA_templates"
 
 # Path where ARPA/DREAMS/Quarterly template is stored. 
 ### Note: Normally in the working directory, but adjust path as needed
-templatePath <- "ARPA_ER_template_v3.xlsx"
-# templatePath <- "quarterly_template_cdi.xlsx" # Quarterly Template, made for CDI in Jan 2022
-# templatePath <- "DREAMS_template_v1.xlsx" # DREAMS template, never used in the end
+ templatePath <- "ARPA_ER_template_v3.xlsx"
+ templatePath <- "quarterly_template.xlsx" # Quarterly Template, made for CDI in Jan 2022
+ templatePath <- "DREAMS_template_v1.xlsx" # DREAMS template, never used in the end
+ templatePath <- "Quarterly_DREAMS_ARPA__v1.xlsx"
 
 # Path to google drive directory
 gdrive_path <- "1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR"
+gdrive_path <- "1w-RzE6V5mCn3fAJT8asL_2K-ieYYdVvK"
 
 # Select the Fiscal Year to use for the Quarterly Template
-curr_year = 2021
+curr_year = 2022
 
 # Select if ARPA, DREAMS, or Quarterly
-template_type <- "ARPA" # "DREAMS" # "Quarterly"
+template_type <- "DREAMS" #"ARPA" # "DREAMS" #"Quarterly"
 
 # Set to TRUE if you want to drop cost categories
 drop_cost <- TRUE
 
 # Set to TRUE if capturing data quarterly, not annually
-add_quarter <- FALSE
+add_quarter <- TRUE
 
 # Set to TRUE if drop Workplan Budget data
 drop_workplan <- TRUE
@@ -104,9 +108,9 @@ gen_df_template <- function(df, drop_workplan, drop_cost){
   if (drop_cost){
     df_temp <- df_temp %>%
       group_by(`program: sub_program`, interaction_type, `beneficiary: sub_beneficiary`) %>%
-      summarize_at(vars(workplan_budget_amt, expenditure_amt), sum, na.rm=T)
+      summarize_at(vars(cop_budget_total, expenditure_amt), sum, na.rm=T)
   } else{
-    drop_cols_cost <- c("cop_budget_total", "operatingunit", "countryname",
+    drop_cols_cost <- c("workplan_budget_amt", "operatingunit", "countryname",
                         "primepartner", "mech_name", "mech_code",
                         "program", "sub_program", "beneficiary", "sub_beneficiary",
                         "cost_category", "sub_cost_category",
@@ -118,7 +122,7 @@ gen_df_template <- function(df, drop_workplan, drop_cost){
   }
   
   if (drop_workplan){
-    df_temp <- df_temp %>% select(-workplan_budget_amt)
+    df_temp <- df_temp %>% select(-cop_budget_total)
   }
   return(df_temp)
 }
@@ -162,7 +166,8 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
   } else if(templ_type == "DREAMS"){
     df_template <- df_template %>%
       add_column(dreams_budget_amt = NA,
-                 dreams_expenditure_amt = NA)
+                 dreams_expenditure_amt = NA,
+                 ARPA_Portion_of_Expenditure = NA)
   } else if(templ_type == "Quarterly"){
     # set all Expenditure amounts to null, as that is the column mechs will fill out quarterly
     df_template$expenditure_amt <- NA
@@ -201,7 +206,7 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
   if(template_type == "ARPA" | template_type=="Quarterly"){
     fill_col <- start_col
   }else if(template_type == "DREAMS"){
-    fill_col <- start_col+1
+    fill_col <- start_col
   }
   
   # Add styles based on the styles we created earlier. See: https://ycphs.github.io/openxlsx/reference/addStyle.html
@@ -212,7 +217,8 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
   addStyle(wb, sheet = 2, dollar_cell, rows = 2:200, cols=start_col:num_cols, gridExpand=T, stack=T)
   
   # Save ARPA template
-  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_{template_type}_template.xlsx")
+  #file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_{template_type}_template.xlsx")
+  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_Quarterly_template.xlsx")
   saveWorkbook(wb, file_name, overwrite = TRUE)
   return(df_template)
 }
@@ -299,7 +305,7 @@ lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
 
 # ####### THIS SHORTENS LIST FOR TEST RUN #######
 # lst_ou <- lst_ou[1:2]
-# lst_ou <- c("Cote d'Ivoire")
+ lst_ou <- c("Kenya")
 
 #create output folders folders locally
 dir_create(fisc_dir)
