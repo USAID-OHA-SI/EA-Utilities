@@ -59,14 +59,13 @@ fisc_dir <- "C:/Users/jmontespenaloza/Documents/test_folder"#"ARPA_templates"
 
 # Path where ARPA/DREAMS/Quarterly template is stored. 
 ### Note: Normally in the working directory, but adjust path as needed
- templatePath <- "ARPA_ER_template_v3.xlsx"
- templatePath <- "quarterly_template.xlsx" # Quarterly Template, made for CDI in Jan 2022
+ #templatePath <- "ARPA_ER_template_v3.xlsx"
+ #templatePath <- "quarterly_template.xlsx" # Quarterly Template, made for CDI in Jan 2022
  templatePath <- "DREAMS_template_v1.xlsx" # DREAMS template, never used in the end
- templatePath <- "Quarterly_DREAMS_ARPA__v1.xlsx"
+ #templatePath <- "Quarterly_DREAMS_ARPA__v1.xlsx"# Quarterly, DREAMS, ARPA template combined
 
 # Path to google drive directory
 gdrive_path <- "1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR"
-gdrive_path <- "1w-RzE6V5mCn3fAJT8asL_2K-ieYYdVvK"
 
 # Select the Fiscal Year to use for the Quarterly Template
 curr_year = 2022
@@ -75,13 +74,13 @@ curr_year = 2022
 template_type <- "DREAMS" #"ARPA" # "DREAMS" #"Quarterly"
 
 # Set to TRUE if you want to drop cost categories
-drop_cost <- TRUE
+drop_cost <- FALSE
 
 # Set to TRUE if capturing data quarterly, not annually
 add_quarter <- TRUE
 
 # Set to TRUE if drop Workplan Budget data
-drop_workplan <- TRUE
+drop_workplan <- FALSE
 
 
 # Functions ============================================================================
@@ -108,9 +107,9 @@ gen_df_template <- function(df, drop_workplan, drop_cost){
   if (drop_cost){
     df_temp <- df_temp %>%
       group_by(`program: sub_program`, interaction_type, `beneficiary: sub_beneficiary`) %>%
-      summarize_at(vars(cop_budget_total, expenditure_amt), sum, na.rm=T)
+      summarize_at(vars(workplan_budget_amt, expenditure_amt), sum, na.rm=T)
   } else{
-    drop_cols_cost <- c("workplan_budget_amt", "operatingunit", "countryname",
+    drop_cols_cost <- c("cop_budget_total", "operatingunit", "countryname",
                         "primepartner", "mech_name", "mech_code",
                         "program", "sub_program", "beneficiary", "sub_beneficiary",
                         "cost_category", "sub_cost_category",
@@ -122,7 +121,7 @@ gen_df_template <- function(df, drop_workplan, drop_cost){
   }
   
   if (drop_workplan){
-    df_temp <- df_temp %>% select(-cop_budget_total)
+    df_temp <- df_temp %>% select(-workplan_budget_amt)
   }
   return(df_temp)
 }
@@ -166,8 +165,7 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
   } else if(templ_type == "DREAMS"){
     df_template <- df_template %>%
       add_column(dreams_budget_amt = NA,
-                 dreams_expenditure_amt = NA,
-                 ARPA_Portion_of_Expenditure = NA)
+                 dreams_expenditure_amt = NA)
   } else if(templ_type == "Quarterly"){
     # set all Expenditure amounts to null, as that is the column mechs will fill out quarterly
     df_template$expenditure_amt <- NA
@@ -218,7 +216,7 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
   
   # Save ARPA template
   #file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_{template_type}_template.xlsx")
-  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_Quarterly_template.xlsx")
+  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_{templ_type}_template.xlsx")
   saveWorkbook(wb, file_name, overwrite = TRUE)
   return(df_template)
 }
