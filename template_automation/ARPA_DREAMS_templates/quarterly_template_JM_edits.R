@@ -75,7 +75,7 @@ curr_year = 2022
 template_type <- "DREAMS" #"ARPA" # "DREAMS" #"Quarterly"
 
 # Set to TRUE if you want to drop cost categories
-drop_cost <- TRUE
+drop_cost <- FALSE
 
 # Set to TRUE if capturing data quarterly, not annually
 add_quarter <- FALSE
@@ -167,19 +167,15 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
     df_template <- df_template %>%
       add_column(dreams_budget_amt_Q1 = NA,
                  dreams_expenditure_amt_Q1 = NA,
-                 PEPFAR_ARPA_expenditures_Q1 = NA,
                  expenditure_Q2 = NA,
                  dreams_budget_amt_Q2 = NA,
                  dreams_expenditure_amt_Q2 = NA,
-                 PEPFAR_ARPA_expenditures_Q2 = NA,
                  expenditure_Q3 = NA,
                  dreams_budget_amt_Q3 = NA,
                  dreams_expenditure_amt_Q3 = NA,
-                 PEPFAR_ARPA_expenditures_Q3 = NA,
                  expenditure_Q4 = NA,
                  dreams_budget_amt_Q4 = NA,
                  dreams_expenditure_amt_Q4 = NA,
-                 PEPFAR_ARPA_expenditures_Q4 = NA,
                  Notes_Comments= NA)
   } else if(templ_type == "Quarterly"){
     # set all Expenditure amounts to null, as that is the column mechs will fill out quarterly
