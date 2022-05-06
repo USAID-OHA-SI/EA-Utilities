@@ -1,28 +1,19 @@
 
 #might not need all of these
 library(tameDP) #version 3.2.4
-library(purrr)
-library(glamr)
-library(tidyverse)
-library(gophr)
-library(extrafont)
-library(gt)
-library(glue)
-library(webshot)
-library(dplyr)
-library(devtools)
-library(tidyr)
-library(gisr)
-library(scales)
-library(glitr)
 
+ 
 #COP22 Datapack Function
   #the first 2 steps, reading in files, mapping dataframe are in the direct code#
- 
+
   datapack_im_tab<-function(df){
      df<- df %>%
     get_names() %>% 
+    dplyr::filter(standardizeddisaggregate != "KeyPop/HIVStatus") %>% 
+    dplyr::filter(standardizeddisaggregate != "KeyPop/Result") %>%
     dplyr::filter(standardizeddisaggregate != "KeyPop") %>%
+    dplyr::filter(standardizeddisaggregate != "Age/Sex/DREAMS") %>% 
+    dplyr::filter(standardizeddisaggregate != "Age/Sex/Preventive") %>% 
     dplyr::group_by(operatingunit, countryname, fundingagency, mech_code, primepartner, mech_name, indicator, fiscal_year, numeratordenom) %>%
     dplyr::summarise(targets = sum(targets, na.rm = TRUE)) %>% 
     dplyr::ungroup() %>% 
@@ -40,14 +31,16 @@ library(glitr)
                   `Data Stream` = "MER",
                   `Planning Cycle`="COP22")
     
-    agency_category_fast<-function(df){
-         df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
+    #df<-df %>% agency_category_fast()
+ 
+    df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
            mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
                                              ifelse(`Agency Category` == "USAID/WCF", "USAID",
                                                     ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                                           ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup", "Dedup","Other"))))) %>% 
+                                                           ifelse(`Agency Category` == "Dedup","Dedupe", "Other"
+                                                                 ))))) %>% 
            dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
-       } 
+      
        
     df<-df %>%
       dplyr::mutate(`Program Area` = dplyr::case_when(Indicator == "HTS_TST_POS" ~ "HTS",
@@ -59,4 +52,4 @@ library(glitr)
                                                     Indicator == "VMMC" ~ "PREV")) 
   
   return(df)
-}
+} 

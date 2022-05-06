@@ -1,7 +1,7 @@
 ---
 title: "COP22 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
-date: "01/27/2022"
+date: "03/22/2022" #LAST UPDATE
 output: html_document
 ---
 
@@ -51,6 +51,7 @@ library(tameDP)
 library(gophr)
 library(devtools)
 library(keyring)
+
 library(here)
 
 ```
@@ -61,9 +62,14 @@ The "here()" funcitons constructs paths to your project's files, it will locate 
 ```{r}
   here()
   here("COP22 Tools")
-  
+ 
+  set_email("vdacosta@usaid.gov")
   glamr::load_secrets()
-  set_datim("jmontespenaloza")
+  set_datim("VDaCosta5")
+  
+setwd("C:/Users/vdacosta/Documents/R")
+library(here)
+here()
 ```
 
 ##Step 4: Creating functions
@@ -82,17 +88,20 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
 ```{R}
 #Read in FAST & DATAPACK files
 #identify all the Data Pack files (pull in validated datapacks apps.datim.org/datapack)
-  datapack<- list.files(here("COP22 TOOLS/DATAPACK"), full.names = TRUE)
+  datapack<- list.files("C:/Users/vdacosta/Documents/R/COP22 TOOLS/DATAPACK", full.names = TRUE)
+
+# datapack<-list.files(here("COP22 TOOLS/DATAPACK"),full.names = TRUE)
 
   #Data frame for targets
-  df_all<-map_dfr(.x = datapack, 
+  
+df_all<-map_dfr(.x = datapack, 
                 .f= ~ tame_dp(.x, type = "PSNUxIM", map_names=FALSE)) 
 
   df_dp<- df_all %>% datapack_im_tab()
 
 #identify all the FAST files  
-  Fast<-list.files(here("COP22 TOOLS/FASTS"),full.names = TRUE)
-
+  #Fast<-list.files(here("COP22 TOOLS/FASTS"),full.names = TRUE)
+  Fast<- list.files("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FASTS", full.names = TRUE)
   #Data frame for Intervention Budget
   df.Intervention <- purrr::map_dfr(.x = Fast,
                                   .f = ~ FAST_Intervention(.x))
@@ -164,7 +173,14 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 ##Step 8: Write the file to output folder.
 Update the date
 ```{r}
-  write_csv(df_all,here("COP22 TOOLS/dfall.csv"))
+
+## FAST + DATAPACK OUTPUT
+ write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
+
+  write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_03_23_22.csv"))
+
+##DATAPACK OUTPUT
+  write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_03_23_22.csv"))
 ```
 
 ##Additional Steps
@@ -187,14 +203,18 @@ df.DHI <-df.Intervention %>%
 ##STEP 10: DATAPACK OUTPUT
 ```{r}  
 
-#WITHDISAGGREGATES     
-df_datapack_all <-df_all %>%  
-dplyr::mutate(`Agency Category` = `fundingagency`) %>% 
-dplyr::mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
-                                      ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                             ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup","Other")))) 
+#WITHDISAGGREGATES  #Requested 3.24  
+df_datapack_all<-df_all %>% 
+  get_names() %>% 
+    dplyr::mutate(`Agency Category` = `fundingagency`)%>%
+       dplyr:: mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
+                                             ifelse(`Agency Category` == "USAID/WCF", "USAID",
+                                                    ifelse(`Agency Category` == "HHS/CDC", "CDC",
+                                                           ifelse(`Agency Category` == "Dedup","Dedupe", "Other"
+                                                                 ))))) %>% 
+           dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
 
-  write_csv(df_datapack_all,"COP21 FAST and Data Pack Submissions/Dataset/Datapack_Master_05_25_v1.csv")  
+  write_csv(df_datapack_all,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_03_24_22.csv") ) 
 
 #WITHOUTDISAGGREGATES
   df_datapack_agg<- df_all %>%
@@ -205,9 +225,9 @@ dplyr::mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
 dplyr::mutate(`Agency Category` = `fundingagency`) %>% 
 dplyr::mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
                                       ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                             ifelse(`Agency Category` =="Dedupe adjustments Agency","Dedup","Other")))) 
+                                             ifelse(`Agency Category` =="Dedup","Dedupe","Other")))) 
     
-  write_csv(df_datapack_agg,"COP21 FAST and Data Pack Submissions/Dataset/Datapack_Agg_Master_05_25_v1.csv")  
+  write_csv(df_datapack_agg,"C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_NODISSAGGS_03_24_22.csv")   
 ```
 
 ##STEP 11: COMMODITIES ONLY Output

@@ -38,12 +38,13 @@ interaction_type_fast <- function(df){
 
 COP22_master_clean <- function(df) {
   df <- df %>%
+  dplyr::select( -c('Operating Unit')) %>% 
   dplyr::filter(`Total Planned Funding` !=0) %>%
   dplyr::mutate_at(vars(`COP Budget New Funding`),~replace_na(.,0))%>%
   dplyr::mutate_at(vars(`COP Budget Pipeline`),~replace_na(.,0)) %>% 
   dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
-  dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) %>% 
-  dplyr::rename("Country" = `Operating Unit`)
+  dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) #%>% 
+  #dplyr::rename("Country" = `Operating Unit`)
   
   
 }
@@ -55,9 +56,9 @@ COP22_master_clean <- function(df) {
 FAST_Intervention<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df,"Standard COP Matrix-R", skip=3)
-  
+
   # Drop columns you don't need and rename  
-  df<- df %>% dplyr::select( -c('Global','Prime Partner DUNS','Award Number',
+  df<- df %>% dplyr::select( -c('Operating Unit','Global','Prime Partner DUNS','Award Number',
                                 'Appropriation Year', 'Initiative',
                                 'Funding Category','GAP':'ESF', 
                                 'Water':'AB/Y Denominator'))%>%
@@ -78,11 +79,11 @@ FAST_Intervention<-function(df){
   
   #Convert columns into characters and numeric
   df<-df%>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
-    
+    dplyr::mutate_at(vars(`Planning Cycle`: `Cost Type`, `Digital Health Investments`), funs(as.character)) 
+  
     #remove N/A's
     #Drop all rows without an OU specified 
-    df <- df %>%  drop_na('Operating Unit')
+    #df <- df %>%  drop_na('Operating Unit')
   
   #replace NAs with 0s
   df<-df%>%
@@ -101,7 +102,7 @@ FAST_Intervention<-function(df){
 FAST_CCA<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df,"Standard COP Matrix-R", skip=3)
-  
+
   # Drop columns you don't need and rename  
   df<- df %>% dplyr::select( -c('Global','Prime Partner DUNS','Award Number', 'Cost Type',
                                 'Appropriation Year',  'Initiative',
@@ -134,7 +135,7 @@ FAST_CCA<-function(df){
 
   #Convert columns into characters and numeric
   df<-df%>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
+    dplyr::mutate_at(vars(`Planning Cycle`:`Sub Beneficiary`), funs(as.character)) 
  
   #Add in agency category column to group agencies
   df<-df %>% agency_category_fast()
@@ -169,18 +170,18 @@ FAST_Initiative<-function(df){
                             "Sub Beneficiary" =`Minor Beneficiary`,
                             "New Funding" =`Total New Funding Sources`,
                             "Applied Pipeline" =`Applied Pipeline Amount`)
-  
   #Pivot COP Budget New Funding & COP Budget Pipeline to 'funding_type' with value as 'Total Planned Funding'
   df <- df %>% gather(`Funding Type`,`Total Planned Funding`, `New Funding`:`Applied Pipeline`)
-  
+   
   #Pivot GAP, GHP-STATE, GHP-USAID to 'funding_account' with value as 'COP Budget New Funding'
-  df <- df %>% gather(funding_account,`COP Budget New Funding`, `GAP`:`GHP-USAID`)
+  #df <- df %>% gather(funding_account,`COP Budget New Funding`, `GAP`:`GHP-USAID`)
   
   #Create variable 'Data stream' with Initiative
   df <- df %>% dplyr::mutate(`Data Stream`="FAST Initiative") #consider renaming to specify FAST
   
   #Convert columns into characters and numeric
-  df<- df  %>%  dplyr::mutate_at(vars(`Mechanism ID`, `Fiscal Year`), funs(as.character)) 
+  df<-df%>%
+    dplyr::mutate_at(vars(`Planning Cycle`:`Funding Type`), funs(as.character)) 
   
   #Replace NAs in numeric columns
   df <- df %>% dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))
@@ -201,18 +202,18 @@ FAST_Initiative<-function(df){
 #pending
 FAST_Commodities<-function(df){
   df<-read_xlsx(df, "Commodities-E", skip=3)
-  
+
   df<- df %>%  
     dplyr::rename("Specify Other Procurement" =`Specify 'Other' Procurement`) %>% 
-    dplyr::select( -c('View SPT Item on Commodities-P', 'View Initiative on Initiative-E')) 
+    dplyr::select( -c("Validation Message":"View Initiative on Initiative-E")) %>% 
+    dplyr::rename("Prime Partner Name" = `Partner Name`)
    
   #Convert character columns to characters
   df<- df %>%
-    dplyr::mutate_at(vars(`Mechanism ID`, `Program Area (Service Delivery Only)`, `Initiative Name`, `Major Category`, `Minor Category`,
-                   `Beneficiary`, `Item`,`Item ID`,`Specify Other Procurement`), funs(as.character)) 
+    dplyr::mutate_at(vars(`Funding Agency`:`Approval Date`), funs(as.character)) 
   
   df<- df %>%
-    dplyr::mutate(`Approval Date`=as.character(`Approval Date`)) 
+    dplyr::mutate_at(vars(`Quality Assurance $`, `In Country Logistics $`), funs(as.numeric)) 
   #Remove dashes in Facility-based testing and Community-Based Testing temporarily
   df<- df %>%
     dplyr::mutate(`Program Area (Service Delivery Only)`= recode (`Program Area (Service Delivery Only)`, 
@@ -320,20 +321,10 @@ FAST_Earmarks_IM<-function(df){
     dplyr::mutate(`Total Planned Funding`=as.numeric(`Total Planned Funding`))
   
   #Add in agency category column to group agencies
-  agency_category_fast<-function(df){
-    df<- df %>% dplyr::mutate(`Agency Category` = `Funding Agency`)%>%
-      mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
-                                        ifelse(`Agency Category` == "USAID/WCF", "USAID",
-                                               ifelse(`Agency Category` == "HHS/CDC", "CDC",
-                                                      ifelse(`Agency Category` =="Dedup", "Dedup","Other"))))) %>% 
-      dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
-  }
+  df<-df %>% agency_category_fast()
   
   #recode values to match naming in Budget-ER-MER Dataset
-    interaction_type_fast <- function(df){
-      df<-df %>% dplyr::mutate(`Interaction Type`= recode (`Interaction Type`, "SD"= "Service Delivery",
-                                                           "NSD"= "Non Service Delivery"))
-    }
+  df<- df %>% interaction_type_fast() 
   
   return(df)
 }

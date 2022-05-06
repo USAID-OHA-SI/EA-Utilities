@@ -1,38 +1,51 @@
 # Version 2.1
 # Source code for ER briefer
-# 2.1 update: Removed code that will be placed in the markdown code or
+# 2.1 update: Removed code that will be placed in the markdown code
+# Author: David Song
+# Date: 2022/01/04
 
-# install.packages("extrafont")
-# install.packages("fontcm")
-# library(extrafont)
-# font_install("fontcm")
+#### NOTE: All functions are only used in the er_briefer_rmd.Rmd, and never used in iterate_briefer.R
+#### Note: I have no idea why the original GT code used strings instead of numbers for fiscal year,
+####       but faithfully converted all integers to strings for fiscal_yr
+#### Advice: Do not hard code fiscal year into your code
 
-# remotes::install_version("Rttf2pt1", version = "1.3.8")
-
+# List of agencies in our desired order with USAID first. Use this for re-leveling dataframes
 agency_lvls <- c("USAID", "CDC", "AF", "DoD","EAP","EUR","HRSA","PC","PRM",
                  "SAMHSA","SGAC","WHA","Other")
+# Column names used multiple times for budget execution tables
 be_order_cols <- c("expenditure_amt_2020", "cop_budget_total_2020", "budget_execution_2020",
                   "expenditure_amt_2021", "cop_budget_total_2021", "budget_execution_2021")
 
-# Generates an ordered dataframe for using as indices for grouping rows in Kable
+# Purpose: Generates an ordered dataframe for using as indices for grouping rows in Kable
+### Input: df: data.frame that we want grouped rows for
+###        col: string. Column with categorical variables that we want to group rows by
+##              In this case, we want to group funding agencies by row
+### Output: 1 row dataframe, with row group names as column headers and integers indicating 
+###         how many rows each "group" spans. Example: USAID|2 means USAID spans 2 rows then CDC spans 3 rows after USAID
+###                                                    CDC  |3
 ordered_table <- function(df, col){
-  # output<- dataframe %>% count(across(col))%>%
-  #   pivot_wider(names_from=matches(col), values_from=n)
-  
   output <- df %>% 
+    # We must convert string into code that dplyr can understand, so we use the syms function
     group_by(!!! rlang::syms(col)) %>% 
+    # count number of rows 
     count() %>%
+    # Arrange by our preferred order set by agency_lvls, so USAID is ordered first
     arrange(factor(!!! rlang::syms(col), levels= agency_lvls), 
             desc= (!!! rlang::syms(col))) %>%
+    # pivot_wider to make it a 1 row dataframe, rather than a 1 column dataframe. Kable reads this better
     pivot_wider(names_from = (!!! rlang::syms(col)), values_from = n)
-  
   return(output)
 }
 
-# Prep DF for 
+# Purpose: Clean FSD for any tables with budget execution
+### Input: data.frame. FSD
+### Output: cleaned data.frame
 fsd_prep_budget_ex <- function(df){
   df_out <- df %>%   
-    #mutate data type double into integer to have round numbers
+    #mutate data type double into integer to have round numbers. 
+    ### Song Note: This code is identical to GT code, but I would recommend using 
+    ###            round(., digits=0) as a better rounding function than as.integer
+    ###            because as.integer just cuts off the decimals
     dplyr::mutate_if(is.double, as.integer)%>%
     #drop NA for numeric amounts
     mutate_at(vars(cop_budget_total:expenditure_amt),~replace_na(.,0)) %>%
@@ -54,30 +67,39 @@ fsd_prep_budget_ex <- function(df){
   return(df_out)
 }
 
-# Use df that is already subset to the ou level
-# For group_col, use NA, "program", or "mech", or c("mech", "program)
-gen_budget_exec <- function(df, group_col = NA){
-  # Vector of strings that are column names to select
+# Purpose: calculate budget execution at the OU, program, mech, or program x mech levels
+### Inputs: df: data.frame that only has one OU
+###         group_col: String or list of string. 
+###                    Select NA, "program", "mech", or c("mech, "program")
+### Output: cleaned data.frame with calculated budget execution at desired level of granularity
+gen_budget_exec <- function(df, group_col = NA, fiscal_yr=fiscal_yr){
+  # Vector of strings that are column names for the select function
   group_cols <- c("fundingagency", "fiscal_year", "cop_budget_total", 
                   "expenditure_amt")
+  
+  # If group_col is not NA, then append the string(s) to the group_cols list
   if (!is.na(group_col)){
     group_cols <- append(group_cols, group_col, 1)
   }
-  # head function drops last two elements, "cop_budget" and "expenditure" from vector
+  
+  # Selects columns for the group_by function
+  ### Note: head function drops last two elements, "cop_budget" and "expenditure" from vector
   group_by_cols <- head(group_cols, -2)
   
   # If grouping by OU x Program Area, use modified agency category variable
   condition <- group_col == "program"
+  # We have double if-statement to handle if NA
   if (!is.na(condition)){
     if (condition){
       df <- df %>%
         dplyr::select(-fundingagency) %>%
+        # replace fundingagency with agency_category
         rename(fundingagency = agency_category)
     }
   }
   
   df_out <-df %>%
-    dplyr::filter(fiscal_year=="2020" | fiscal_year=="2021")%>%
+    dplyr::filter(fiscal_year==as.character(fiscal_yr-1) | fiscal_year==as.character(fiscal_yr))%>%
     dplyr::select(group_cols) %>%
     
     #### changed from group_by_ to group_by_at
@@ -86,37 +108,42 @@ gen_budget_exec <- function(df, group_col = NA){
     dplyr::mutate(budget_execution=percent_clean(expenditure_amt,cop_budget_total))%>%
     ungroup() %>%
     
+    # Pivot table to correct shape to match GT table
     pivot_wider(names_from = fiscal_year,
                 values_from = cop_budget_total:budget_execution, 
                 values_fill = 0)%>%
     dplyr::select(c(head(group_by_cols,-1), be_order_cols)) %>%
-    #mutate(fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    # Change order so USAID is first
     arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
   return(df_out)
 }
 
-# FSD for merging with tgt data on MSD
 progs<-c("HTS", "C&T","OVC")
+# Purpose: Clean FSD for merging with target data from MSD. Subset HTS, C&T, and OVC
+#          since those are the only programs with clear MER counterparts
+### Input: FSD data.frame
+### Output: cleaned data.frame
 gen_fsd_tgt <- function(df){
   df_out <- df %>% 
-    filter(fiscal_year=="2021")%>%
-    # mutate( fundingagency = fct_relevel(fundingagency, "USAID","CDC"))%>%
+    filter(fiscal_year==as.character(fiscal_yr))%>%
     dplyr::mutate(program = dplyr::case_when(beneficiary == "OVC"~"OVC", 
                                              TRUE ~program))%>%
     group_by(operatingunit,fundingagency,fiscal_year, mech_code, mech_name, 
              primepartner, program) %>% 
     summarise_at(vars(cop_budget_total, expenditure_amt), sum, na.rm = TRUE) %>% 
     ungroup()%>%
+    # Only select HTS, C&T, and OVC programs
     filter(program %in% progs)%>%
     mutate(budget_execution=round(expenditure_amt/cop_budget_total*100)) %>%
+    # Order USAID first
     arrange(factor(fundingagency, levels= agency_lvls), desc(fundingagency))
   return(df_out)
 }
+#################################################################################
 
-
-########################################################
-
-### Unit Expenditure #################################### NO PREPFSD
+### Unit Expenditure #################################### Does not use prep_fsd
+### NOTE: code is identical to GT table code, except front parts are cut off since 
+###       iterate_briefer.R already pre-processed the FSD and MSD for merger
 gen_ue <- function(fsd_tgt, msd_tgt){
   #join datasets together 
   df_ue<-left_join(fsd_tgt, msd_tgt) %>%
@@ -134,7 +161,7 @@ gen_ue <- function(fsd_tgt, msd_tgt){
     pivot_wider(names_from = programatic, values_from=value) %>%
     
     dplyr::mutate(unit_expenditure=percent_clean(expenditure_amt,cumulative))%>%
-    filter(fiscal_year=="2021")%>%
+    filter(fiscal_year==as.character(fiscal_yr))%>%
     
     select(operatingunit,fundingagency,mech_code, mech_name, primepartner,program, 
            indicator, unit_expenditure, cumulative)%>%
@@ -176,7 +203,12 @@ gen_ue <- function(fsd_tgt, msd_tgt){
 
 
 
-### Local Partner % #################################### NO PREP_FSD
+### Local Partner % #################################### Does not use prep_fsd
+### Note: Code has been optimized from its GT table form to run cleaner and with fewer repetition
+
+# Purpose: Generate data.frame from FSD that feeds into both the table and the graph
+### Input: FSD data.frame
+### Output: cleaned data.frame
 gen_local <- function(df){
   df %>%
     dplyr::mutate(`mech_code`=as.character(`mech_code`))%>%
@@ -185,8 +217,11 @@ gen_local <- function(df){
     dplyr::filter(fundingagency=="USAID")
 }
 
+# Purpose: Generate clean table of local mechanisms data
+### Input: data.frame cleaned by gen_local function
+### Output: data.frame table ready for Kable formatting
 gen_local_table <- function(df){
-  df %>% dplyr::filter(fiscal_year=="2021", 
+  df %>% dplyr::filter(fiscal_year== as.character(fiscal_yr), 
                        partner_type_usaid_adjusted=="Local")%>%
     dplyr::select (c(mech,program,fiscal_year,cop_budget_total,expenditure_amt))%>%
     group_by(mech,program,fiscal_year)%>%
@@ -203,9 +238,12 @@ gen_local_table <- function(df){
     filter(cop_budget_total_2021>0 | expenditure_amt_2021>0)
 }
 
+# Purpose: Generate dataframe that ggplot of local vs. international requires
+### Input: data.frame cleaned by gen_local function
+### Output: data.frame for graphing
 gen_graph_tbl <- function(df) {
   df %>% dplyr::filter(partner_type_usaid_adjusted=="Local" | partner_type_usaid_adjusted=="International",
-                       !fiscal_year=="2022")%>%
+                       !fiscal_year==as.character(fiscal_yr+1))%>%
     dplyr::select (c(partner_type_usaid_adjusted, fiscal_year,expenditure_amt))%>%
     group_by(partner_type_usaid_adjusted,fiscal_year)%>%
     summarise_at(vars(expenditure_amt), sum, na.rm = TRUE)%>%
@@ -216,9 +254,13 @@ gen_graph_tbl <- function(df) {
     mutate(total = rowSums(across(c(Local, International)), na.rm=TRUE), #pivot to get totals and shares
            lp_share = Local / total*100,
            ip_share=International/total*100) %>%
+    # Song Note: There are probably better ways to caclulate totals and shares than double pivots
     pivot_longer(cols = International:Local, names_to = "partner_type")
 }
 
+# Purpose: Plot the ggplot of local vs. international
+### Input: data.frame from gen_graph_tbl
+### Output: Nothing. Produces ggplot
 plot_local <- function(df, ou){
   ggplot(df, aes(fiscal_year, value)) +
     geom_col(aes( fill = partner_type))+
@@ -237,9 +279,11 @@ plot_local <- function(df, ou){
          title = glue("Expenditure by Partner Type: {ou}"),
          caption =  glue("Source: {source}-Excluding M&O and Commodities",
          )) +
-    # si_style does NOT work in Rmarkdown
+    # # si_style does NOT work in Rmarkdown, so I commented it out
     # si_style_nolines()+
+    ### Recreation of si_style_nolines function
     theme(legend.position="bottom",
+          # closest font that I could get from Windows to R Markdown font
           text=element_text(family="Goudy Old Style"),
           panel.background = element_blank(),
           panel.grid.major = element_blank(), 
@@ -247,16 +291,9 @@ plot_local <- function(df, ou){
           )
 }
 
-
-# glamr::load_secrets()
-# 
-# df_local<- gen_local(df_fsd)
-# local_table <- gen_local_table(df_local)
-# local_graph <- gen_graph_tbl(df_local)
-# plot_local(local_graph, "Mozambique")
-
-
 ### Breakdown by Service Delivery ####################################
+### NOTE: code is identical to GT table code, except front parts are cut off since 
+###       iterate_briefer.R already pre-processed the FSD
 gen_serv <- function(df, ou){
   df %>% 
     glamr::remove_sch("SGAC")%>%
@@ -270,7 +307,6 @@ gen_serv <- function(df, ou){
     
     pivot_wider(names_from = interaction_type, values_from = expenditure_amt)%>%
     
-    ##### MISSING PM AND SD/NSD are named incorrectly in code
     mutate(total = NSD+SD+PM, #pivot to get totals and shares
            nsd_share=NSD/total ,
            sd_share = SD / total ,
@@ -286,6 +322,8 @@ gen_serv <- function(df, ou){
                            TRUE ~as.numeric(interaction_type)))%>%
     select(fundingagency,fiscal_year,interaction_type,cumulative,total,share) %>%
     
+    # Note: I combined plotting into the same function, unlike the GT code, since I will
+    #       never use this dataframe again besides for generating this plot
     ggplot(aes(fiscal_year,cumulative)) + #can add value to geom_col-use cumulative sum
     geom_col(aes(y = cumulative, fill = fct_rev(interaction_type))) +
     facet_wrap("fundingagency", scales='free_x')+
@@ -301,7 +339,7 @@ gen_serv <- function(df, ou){
          title = glue("Expenditure by Interaction Type (Excluding Commodities): {ou}"),
          caption =  glue("Source: {source}",
          )) +
-    # si_style_nolines()+
+    # I had to recreate si_style_nolines manually with a font that tries to match R Markdown's
     theme(legend.position="bottom",
           text=element_text(family="Goudy Old Style"),
           panel.background = element_blank(),
@@ -312,19 +350,29 @@ gen_serv <- function(df, ou){
     
 
 ### HIV Testing  ####################################
+# Purpose: Generates the single dataframe required for any of the 3 FSD program vs. MER tables
+#          Used by HTS, OVC, and C&T
+### Inputs: FSD and MSD dataframes
+### Output: cleaned dataframe that can be filtered for HTS, C&T, or OVC tables
 gen_ue_indiv <- function(fsd, msd){
-  # additional transformations on msd before merge
+  # Additional transformations on MSD before merge are required
   msd_tgt_indiv <- msd %>%
     mutate(achievement=round (cumulative/targets*100))%>%
     select(operatingunit,fundingagency,fiscal_year,mech_code,mech_name,program,
            indicator,achievement)%>%
     pivot_wider(names_from = indicator, values_from=achievement)
 
-  # Must check if OVC_SERV is included in the ou 
+  # Must check if OVC_SERV is included in the OU. 
+  ### Why: Some OUs do not have OVC_SERV. Since we create our table via pivot,
+  ###      if we are missing OVC_SERV, we get the wrong number of columns and it 
+  ###      messes up the table
+  ### Warning: If any OU ever lacks C&T or HTS in the future (highly unlikely, but possible),
+  ###          then we have to repeat this code but for C&T or HTS indicators (e.g. TX_CURR)
   if(!"OVC_SERV" %in% names(msd_tgt_indiv)){
     msd_tgt_indiv["OVC_SERV"] = 0
-    }
-  #join datasets together 
+  }
+  
+  # Join datasets together 
   df_ue_indiv<-left_join(fsd, msd_tgt_indiv)%>%
     dplyr::mutate( mech = paste(mech_code,"-", mech_name)) %>%
     relocate(expenditure_amt, .before= cop_budget_total)%>%
@@ -337,7 +385,9 @@ gen_ue_indiv <- function(fsd, msd){
   return(df_ue_indiv)
 }
 
-#Use below function to get HTS, C&T, OVC info for a specific OU
+# Use below function to get HTS, C&T, OVC info for a specific OU
+### Input: df_ue_temp: data.frame created by gen_ue_indiv function
+###        programs: string or list of strings. Pick only one: "HTS", "C&T", or "OVC" 
 get_program_specific<-function(df_ue_temp, programs=c("HTS","C&T","OVC")){
   df<-df_ue_temp%>%
     mutate_at(vars(expenditure_amt:OVC_SERV),~replace_na(.,0)) %>%
@@ -348,12 +398,16 @@ get_program_specific<-function(df_ue_temp, programs=c("HTS","C&T","OVC")){
 }
 
 
-### Commodities #################################### NO PREP FSD
+### Commodities #################################### Does not use prep_fsd
+### NOTE: code is identical to GT table code, except front parts are cut off since 
+###       iterate_briefer.R already pre-processed the FSD
 psm_murder<-function(df){
   df_out<-df%>%
-    filter(fiscal_year=="2021") %>%
+    # Slight additional processing of FSD
+    filter(fiscal_year==as.character(fiscal_yr)) %>%
     filter(str_detect(mech_name, 'GHSC'))%>%
-
+    
+    # Rest of the GT code
     group_by(operatingunit, mech, program,sub_program) %>%
     summarise_at(vars(cop_budget_total, expenditure_amt), sum, na.rm = TRUE) %>% 
     ungroup()%>%
@@ -365,9 +419,13 @@ psm_murder<-function(df){
   return(df_out)
 }
 
-# df_mozambique<-psm_murder(df_fsd)
 
 ### HRH ======================================================================
+### NOTE: code is identical to GT table code, except front parts are cut off since 
+###       iterate_briefer.R already pre-processed the FSD
+##### RECOMMENDATION: I had the least time streamlining the HRH code, so there is 
+#####                 highly room to further improve it from its original GT version
+
 ## First table
 gen_hrh_main <- function(df_hrh, df_fsd){
   df_hrh1<-df_hrh%>%
@@ -377,7 +435,7 @@ gen_hrh_main <- function(df_hrh, df_fsd){
     ungroup()
   
   df_fsd_temp <- df_fsd %>% 
-    filter(fiscal_year == "2021") %>%
+    filter(fiscal_year == as.character(fiscal_yr)) %>%
     group_by(operatingunit,fundingagency,fiscal_year)%>%
     summarise_at(vars(expenditure_amt), sum, na.rm = TRUE)%>%
     ungroup()
