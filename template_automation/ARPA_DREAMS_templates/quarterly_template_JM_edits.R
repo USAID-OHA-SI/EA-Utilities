@@ -62,8 +62,8 @@ fisc_dir <- "C:/Users/jmontespenaloza/Documents/test_folder"#"ARPA_templates"
  templatePath <- "ARPA_ER_template_v3.xlsx"
  templatePath <- "quarterly_template.xlsx" # Quarterly Template, made for CDI in Jan 2022
  templatePath <- "DREAMS_template_v1.xlsx" # DREAMS template, never used in the end
+ templatePath <- "Quarterly_DREAMS_ARPA_CC_v2.xlsx"
  templatePath <- "Quarterly_DREAMS_ARPA__v1.xlsx"
-
 # Path to google drive directory
 gdrive_path <- "1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR"
 gdrive_path <- "1w-RzE6V5mCn3fAJT8asL_2K-ieYYdVvK"
@@ -75,10 +75,10 @@ curr_year = 2022
 template_type <- "DREAMS" #"ARPA" # "DREAMS" #"Quarterly"
 
 # Set to TRUE if you want to drop cost categories
-drop_cost <- TRUE
+drop_cost <- FALSE
 
 # Set to TRUE if capturing data quarterly, not annually
-add_quarter <- TRUE
+add_quarter <- FALSE
 
 # Set to TRUE if drop Workplan Budget data
 drop_workplan <- FALSE
@@ -122,7 +122,7 @@ gen_df_template <- function(df, drop_workplan, drop_cost){
   }
   
   if (drop_workplan){
-    df_temp <- df_temp %>% select(-cop_budget_total)
+    df_temp <- df_temp %>% select(-workplan_budget_amt)
   }
   return(df_temp)
 }
@@ -165,9 +165,18 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
                  activity_description = NA)
   } else if(templ_type == "DREAMS"){
     df_template <- df_template %>%
-      add_column(dreams_budget_amt = NA,
-                 dreams_expenditure_amt = NA,
-                 ARPA_Portion_of_Expenditure = NA)
+      add_column(dreams_budget_amt_Q1 = NA,
+                 dreams_expenditure_amt_Q1 = NA,
+                 expenditure_Q2 = NA,
+                 dreams_budget_amt_Q2 = NA,
+                 dreams_expenditure_amt_Q2 = NA,
+                 expenditure_Q3 = NA,
+                 dreams_budget_amt_Q3 = NA,
+                 dreams_expenditure_amt_Q3 = NA,
+                 expenditure_Q4 = NA,
+                 dreams_budget_amt_Q4 = NA,
+                 dreams_expenditure_amt_Q4 = NA,
+                 Notes_Comments= NA)
   } else if(templ_type == "Quarterly"){
     # set all Expenditure amounts to null, as that is the column mechs will fill out quarterly
     df_template$expenditure_amt <- NA
@@ -288,6 +297,8 @@ df_fsd <- df_fsd %>% filter(planning_cycle != 'COP18' & planning_cycle != 'COP17
 
 # Replace "Program Management" with "IM Program Management"
 df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program Management", "IM Program Management")
+
+#df_fsd <- df_fsd%>% filter(cost_category != 'Not Specified')
 
 # # # TEST FUNCTIONS =======================================================================
 # # Test one mechanism on function pipeline

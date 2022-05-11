@@ -205,7 +205,8 @@ FAST_Commodities<-function(df){
 
   df<- df %>%  
     dplyr::rename("Specify Other Procurement" =`Specify 'Other' Procurement`) %>% 
-    dplyr::select( -c("Validation Message":"View Initiative on Initiative-E")) 
+    dplyr::select( -c("Validation Message":"View Initiative on Initiative-E")) %>% 
+    dplyr::rename("Prime Partner Name" = `Partner Name`)
    
   #Convert character columns to characters
   df<- df %>%
