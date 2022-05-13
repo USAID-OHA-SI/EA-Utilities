@@ -20,13 +20,13 @@ install.packages("stringr")
 install.packages("readxl")
 install.packages("here")
 #install.packages("googlesheets4")
-install.packages("remote")
 install.packages("data.table")
 install.packages("splitstackshape")
 #install.packages("googledrive")
 devtools::install_github("USAID-OHA-SI/glamr")
 install.packages("purrr")
 install.packages("devtools")
+install.packages("remotes")
 remotes::install_github("USAID-OHA-SI/tameDP")
 remotes::install_github("USAID-OHA-SI/gophr")
 install.packages("keyring")
@@ -77,7 +77,7 @@ Load the following source files to apply the functions necessary to create each 
 ```{R}
 source("~/GitHub/EA-Utilities/COP Analytics/fast_function.R")
 source("~/GitHub/EA-Utilities/COP Analytics/dp_function.R") 
-source("~/GitHub/EA-Utilities/COP Analytics/esf_function.R")
+#source("~/GitHub/EA-Utilities/COP Analytics/esf_function.R")
 #source("~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv")
 ```
 
@@ -130,7 +130,8 @@ df_all<-map_dfr(.x = datapack,
   #Data frame for Earmarks from FAST by IM
   df.Earmarks_IM <- purrr::map_dfr(.x = Fast,
                                  .f = ~ FAST_Earmarks_IM(.x))
- 
+
+  
   #Data frame for Operating Unit and Country
   df.OU_Country <- read.csv (
     "~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv", check.names = FALSE,  
@@ -177,10 +178,10 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-  write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_03_23_22.csv"))
+  write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_04_13_22.csv"))
 
 ##DATAPACK OUTPUT
-  write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_03_23_22.csv"))
+  write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_04_13_22.csv"))
 ```
 
 ##Additional Steps
@@ -203,7 +204,7 @@ df.DHI <-df.Intervention %>%
 ##STEP 10: DATAPACK OUTPUT
 ```{r}  
 
-#WITHDISAGGREGATES  #Requested 3.24  
+#WITHDISAGGREGATES  #Requested 3.24 for COP22
 df_datapack_all<-df_all %>% 
   get_names() %>% 
     dplyr::mutate(`Agency Category` = `fundingagency`)%>%
@@ -214,9 +215,17 @@ df_datapack_all<-df_all %>%
                                                                  ))))) %>% 
            dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
 
-  write_csv(df_datapack_all,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_03_24_22.csv") ) 
+  write_csv(df_datapack_all,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_04_13_22.csv") ) 
 
-#WITHOUTDISAGGREGATES
+  
+#CASCADE TAB  #Requested 4.13 for COP22  
+ ##need to write code for this
+  
+  
+    write_csv(df_datapack_cascade,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_CASCADE_04_13_22.csv") ) 
+
+
+#WITHOUTDISAGGREGATES COP21 only
   df_datapack_agg<- df_all %>%
   dplyr::filter(disagg != "KeyPop") %>%
   dplyr::group_by(operatingunit, countryname, fundingagency, mech_code, primepartner, mech_name, indicator, fiscal_year, numeratordenom) %>%
