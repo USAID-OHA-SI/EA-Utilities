@@ -61,7 +61,7 @@ fisc_dir <- "C:/Users/jmontespenaloza/Documents/test_folder"#"ARPA_templates"
 ### Note: Normally in the working directory, but adjust path as needed
  templatePath <- "ARPA_ER_template_v3.xlsx"
  templatePath <- "quarterly_template.xlsx" # Quarterly Template, made for CDI in Jan 2022
- templatePath <- "DREAMS_template_v1.xlsx" # DREAMS template, never used in the end
+ templatePath <- "DREAMS_template_v2.xlsx" # DREAMS template, never used in the end
  templatePath <- "Quarterly_DREAMS_ARPA_CC_v2.xlsx"
  templatePath <- "Quarterly_DREAMS_ARPA__v1.xlsx"
 # Path to google drive directory
@@ -108,9 +108,9 @@ gen_df_template <- function(df, drop_workplan, drop_cost){
   if (drop_cost){
     df_temp <- df_temp %>%
       group_by(`program: sub_program`, interaction_type, `beneficiary: sub_beneficiary`) %>%
-      summarize_at(vars(cop_budget_total, expenditure_amt), sum, na.rm=T)
+      summarize_at(vars(workplan_budget_amt, expenditure_amt), sum, na.rm=T)
   } else{
-    drop_cols_cost <- c("workplan_budget_amt", "operatingunit", "countryname",
+    drop_cols_cost <- c("cop_budget_total", "operatingunit", "countryname",
                         "primepartner", "mech_name", "mech_code",
                         "program", "sub_program", "beneficiary", "sub_beneficiary",
                         "cost_category", "sub_cost_category",
@@ -298,7 +298,7 @@ df_fsd <- df_fsd %>% filter(planning_cycle != 'COP18' & planning_cycle != 'COP17
 # Replace "Program Management" with "IM Program Management"
 df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program Management", "IM Program Management")
 
-#df_fsd <- df_fsd%>% filter(cost_category != 'Not Specified')
+df_fsd <- df_fsd%>% filter(cost_category != 'Not Specified')
 
 # # # TEST FUNCTIONS =======================================================================
 # # Test one mechanism on function pipeline
@@ -316,7 +316,7 @@ lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
 
 # ####### THIS SHORTENS LIST FOR TEST RUN #######
 # lst_ou <- lst_ou[1:2]
- lst_ou <- c("Kenya")
+ lst_ou <- c("Lesotho")
 
 #create output folders folders locally
 dir_create(fisc_dir)
