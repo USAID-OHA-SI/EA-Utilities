@@ -132,8 +132,10 @@ df_all<-map_dfr(.x = datapack,
                                  .f = ~ FAST_Earmarks_IM(.x))
 
   
-  #Data frame for Operating Unit and Country
-  df.OU_Country <- read.csv (
+  
+#Data frame for Operating Unit and Country
+ 
+   df.OU_Country <- read.csv (
     "~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv", check.names = FALSE,  
     fileEncoding="UTF-8-BOM")
 
@@ -178,7 +180,7 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-  write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_04_13_22.csv"))
+write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_06_08_22_v2.csv"))
 
 ##DATAPACK OUTPUT
   write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_04_13_22.csv"))
@@ -215,13 +217,27 @@ df_datapack_all<-df_all %>%
                                                                  ))))) %>% 
            dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
 
-  write_csv(df_datapack_all,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_04_13_22.csv") ) 
+###Incorporate central americal renaming
+  df.rename<- read.csv("C:/Users/vdacosta/Documents/R/COP22 TOOLS/rename.csv" , check.names = FALSE) %>% 
+    rename("mech_code"= "ï»¿mech_code") %>% 
+           dplyr::mutate(`mech_code`= as.character(`mech_code`))
+
+ df_datapack_all_join <- left_join(df_datapack_all, df.rename, by = "mech_code")
+
+df_datapack_all_clean<- df_datapack_all_join %>% 
+  dplyr::mutate(countryname2 = case_when(mech_code== "86252" | mech_code== "100129"|  mech_code== "100139"|  mech_code== "81114"|  mech_code== "100110"|  mech_code== "100105"|  mech_code== "84311" |  mech_code== "100130"|  mech_code== "100140"|  mech_code== "81144"|  mech_code== "100106"|  mech_code== "100111"|  mech_code== "84230" |  mech_code== "100131"|  mech_code== "100141"|  mech_code== "81176"|  mech_code== "100112"|  mech_code== "84360" |  mech_code== "81325"|  mech_code== "100113"| mech_code== "100138"|   mech_code== "100143"| mech_code== "100114"|  mech_code== "84730"  ~ Country, TRUE ~ countryname)) %>% 
+    select (-c(countryname, Country)) %>% 
+    rename("countryname"= "countryname2") 
+
+  
+
+
+  write_csv(df_datapack_all_clean,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_06_09_22.csv") ) 
 
   
 #CASCADE TAB  #Requested 4.13 for COP22  
  ##need to write code for this
-  
-  
+
     write_csv(df_datapack_cascade,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_CASCADE_04_13_22.csv") ) 
 
 
