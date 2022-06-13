@@ -92,12 +92,26 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
 
 # datapack<-list.files(here("COP22 TOOLS/DATAPACK"),full.names = TRUE)
 
-  #Data frame for targets
-  
-df_all<-map_dfr(.x = datapack, 
-                .f= ~ tame_dp(.x, type = "PSNUxIM", map_names=FALSE)) 
 
-  df_dp<- df_all %>% datapack_im_tab()
+#IMPORT DATASET WITH CORRECT WHR COUNTRIES TO MECHANISM MAPPING
+df.rename<- read.csv("C:/Users/vdacosta/Documents/R/COP22 TOOLS/rename.csv" , check.names = FALSE) %>% 
+    rename("Mechanism ID"= "ï»¿mech_code") %>% 
+           dplyr::mutate(`Mechanism ID`= as.character(`Mechanism ID`))
+ 
+#Data frame for targets
+#make sure HOME tab in caribbean datapack is changed to Jamaica
+#make sure HOME tab in central america datapack is changed to Brazi
+
+df_all<-map_dfr(.x = datapack, 
+                .f= ~ tame_dp(.x, type = "PSNUxIM", map_names=FALSE))
+ 
+df_dp<- df_all %>% datapack_im_tab() %>% 
+    rename("Country2"= "Country") 
+
+df_dp<- left_join(df_dp, df.rename, by = "Mechanism ID") %>% 
+  dplyr::mutate(countryname2 = case_when(`Mechanism ID`== "86252" | `Mechanism ID`== "100129"| `Mechanism ID`== "100139"|  `Mechanism ID`== "81114"|  `Mechanism ID`== "100110"|  `Mechanism ID`== "100105"|  `Mechanism ID`== "84311" |  `Mechanism ID`== "100130"|  `Mechanism ID`== "100140"|  `Mechanism ID`== "81144"|  `Mechanism ID`== "100106"|  `Mechanism ID`== "100111"|  `Mechanism ID`== "84230" |  `Mechanism ID`== "100131"|  `Mechanism ID`== "100141"|  `Mechanism ID`== "81176"|  `Mechanism ID`== "100112"|  `Mechanism ID`== "84360" |  `Mechanism ID`== "81325"|  `Mechanism ID`== "100113"| `Mechanism ID`== "100138"|   `Mechanism ID`== "100143"| `Mechanism ID`== "100114"|  `Mechanism ID`== "84730"  ~ Country, TRUE ~ Country2)) %>% 
+    select (-c(Country2, Country)) %>% 
+    rename("Country"= "countryname2") 
 
 #identify all the FAST files  
   #Fast<-list.files(here("COP22 TOOLS/FASTS"),full.names = TRUE)
@@ -180,7 +194,7 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_06_08_22_v2.csv"))
+write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_06_13_22.csv"))
 
 ##DATAPACK OUTPUT
   write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_04_13_22.csv"))
@@ -206,7 +220,7 @@ df.DHI <-df.Intervention %>%
 ##STEP 10: DATAPACK OUTPUT
 ```{r}  
 
-#WITHDISAGGREGATES  #Requested 3.24 for COP22
+#WITHDISAGGREGATES  
 df_datapack_all<-df_all %>% 
   get_names() %>% 
     dplyr::mutate(`Agency Category` = `fundingagency`)%>%
@@ -217,7 +231,7 @@ df_datapack_all<-df_all %>%
                                                                  ))))) %>% 
            dplyr::mutate(`Agency Category`= as.character(`Agency Category`))
 
-###Incorporate central americal renaming
+###Incorporate central america renaming
   df.rename<- read.csv("C:/Users/vdacosta/Documents/R/COP22 TOOLS/rename.csv" , check.names = FALSE) %>% 
     rename("mech_code"= "ï»¿mech_code") %>% 
            dplyr::mutate(`mech_code`= as.character(`mech_code`))
@@ -230,15 +244,7 @@ df_datapack_all_clean<- df_datapack_all_join %>%
     rename("countryname"= "countryname2") 
 
   
-
-
   write_csv(df_datapack_all_clean,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_06_09_22.csv") ) 
-
-  
-#CASCADE TAB  #Requested 4.13 for COP22  
- ##need to write code for this
-
-    write_csv(df_datapack_cascade,("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_CASCADE_04_13_22.csv") ) 
 
 
 #WITHOUTDISAGGREGATES COP21 only
@@ -252,7 +258,9 @@ dplyr::mutate(`Agency Category` = ifelse(`Agency Category` == "USAID", "USAID",
                                       ifelse(`Agency Category` == "HHS/CDC", "CDC",
                                              ifelse(`Agency Category` =="Dedup","Dedupe","Other")))) 
     
-  write_csv(df_datapack_agg,"C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_NODISSAGGS_03_24_22.csv")   
+  write_csv(df_datapack_agg,"C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_Agency_IM_NODISSAGGS_03_24_22.csv")  
+  
+  
 ```
 
 ##STEP 11: COMMODITIES ONLY Output
