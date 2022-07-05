@@ -62,17 +62,19 @@ fisc_dir <- "C:/Users/jmontespenaloza/Documents/test_folder"#"ARPA_templates"
  templatePath <- "ARPA_ER_template_v3.xlsx"
  templatePath <- "quarterly_template.xlsx" # Quarterly Template, made for CDI in Jan 2022
  templatePath <- "DREAMS_template_v2.xlsx" # DREAMS template, never used in the end
- templatePath <- "Quarterly_DREAMS_ARPA_CC_v2.xlsx"
+ templatePath <- "Quarterly_DREAMS_ARPA_CC_v4.xlsx"
  templatePath <- "Quarterly_DREAMS_ARPA__v1.xlsx"
+ templatePath <- "USAID_Community_Expenditure_template_V3.xlsx"
+ 
 # Path to google drive directory
 gdrive_path <- "1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR"
 gdrive_path <- "1w-RzE6V5mCn3fAJT8asL_2K-ieYYdVvK"
 
 # Select the Fiscal Year to use for the Quarterly Template
-curr_year = 2022
+curr_year = 2021
 
 # Select if ARPA, DREAMS, or Quarterly
-template_type <- "DREAMS" #"ARPA" # "DREAMS" #"Quarterly"
+template_type <- "ARPA" #"ARPA" # "DREAMS" #"Quarterly"
 
 # Set to TRUE if you want to drop cost categories
 drop_cost <- FALSE
@@ -81,7 +83,7 @@ drop_cost <- FALSE
 add_quarter <- FALSE
 
 # Set to TRUE if drop Workplan Budget data
-drop_workplan <- FALSE
+drop_workplan <- TRUE
 
 
 # Functions ============================================================================
@@ -117,7 +119,7 @@ gen_df_template <- function(df, drop_workplan, drop_cost){
                         "planning_cycle", "fiscal_year")
     df_temp <- df_temp %>%
       add_column("cost_category: sub_cost_category" = glue("{.$cost_category}: {.$sub_cost_category}"),
-                   .before = "cost_category") %>%
+                 .before = "cost_category") %>%
       select(-drop_cols_cost)
   }
   
@@ -145,28 +147,11 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
     df_template <- df_template %>%
       add_column(ipc_cse = NA,
                  ipc_hrh = NA,
-                 ipc_other = NA,
-                 vax_cse = NA,
-                 vax_hrh = NA,
-                 vax_other = NA,
-                 test_cse = NA,
-                 test_hrh = NA,
-                 test_other = NA,
-                 clinical_cse = NA,
-                 clinical_hrh = NA,
-                 clinical_other = NA,
-                 other_cse = NA,
-                 other_hrh = NA,
-                 other_other = NA,
-                 mitig_repair = NA,
-                 mitig_logistics = NA,
-                 mitig_lab = NA,
-                 mitig_other = NA,
-                 activity_description = NA)
+                 ipc_other = NA)
   } else if(templ_type == "DREAMS"){
     df_template <- df_template %>%
-      add_column(dreams_budget_amt_Q1 = NA,
-                 dreams_expenditure_amt_Q1 = NA,
+      add_column(dreams_budget = NA,
+                 expenditureeeee = NA,
                  expenditure_Q2 = NA,
                  dreams_budget_amt_Q2 = NA,
                  dreams_expenditure_amt_Q2 = NA,
@@ -176,7 +161,8 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
                  expenditure_Q4 = NA,
                  dreams_budget_amt_Q4 = NA,
                  dreams_expenditure_amt_Q4 = NA,
-                 Notes_Comments= NA)
+                 Notes_Comments= NA,
+                 Expenditure_total= NA)
   } else if(templ_type == "Quarterly"){
     # set all Expenditure amounts to null, as that is the column mechs will fill out quarterly
     df_template$expenditure_amt <- NA
@@ -227,7 +213,7 @@ wb_pipeline <- function(mech, templ_type, dr = "", df = df_fsd){
   
   # Save ARPA template
   #file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_{template_type}_template.xlsx")
-  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_Quarterly_template.xlsx")
+  file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_Expenditure_Template.xlsx")
   saveWorkbook(wb, file_name, overwrite = TRUE)
   return(df_template)
 }
@@ -298,7 +284,12 @@ df_fsd <- df_fsd %>% filter(planning_cycle != 'COP18' & planning_cycle != 'COP17
 # Replace "Program Management" with "IM Program Management"
 df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program Management", "IM Program Management")
 
+#df_fsd$cost_category <- replace(df_fsd$cost_category, df_fsd$cost_category == "Not Specified", "")
+#df_fsd$sub_cost_category <- replace(df_fsd$sub_cost_category, df_fsd$sub_cost_category == "Not Specified", "")                                
+
 df_fsd <- df_fsd%>% filter(cost_category != 'Not Specified')
+
+df_fsd <- df_fsd %>% drop_na(expenditure_amt)
 
 # # # TEST FUNCTIONS =======================================================================
 # # Test one mechanism on function pipeline
@@ -316,7 +307,7 @@ lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
 
 # ####### THIS SHORTENS LIST FOR TEST RUN #######
 # lst_ou <- lst_ou[1:2]
- lst_ou <- c("Lesotho")
+ lst_ou <- c("Kenya")
 
 #create output folders folders locally
 dir_create(fisc_dir)
