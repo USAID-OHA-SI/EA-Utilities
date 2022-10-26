@@ -307,7 +307,7 @@ lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
 
 # ####### THIS SHORTENS LIST FOR TEST RUN #######
 # lst_ou <- lst_ou[1:2]
- lst_ou <- c("Kenya")
+ lst_ou <- c("Guatemala")
 
 #create output folders folders locally
 dir_create(fisc_dir)
