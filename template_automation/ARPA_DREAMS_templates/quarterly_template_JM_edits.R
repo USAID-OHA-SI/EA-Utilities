@@ -289,7 +289,7 @@ df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program
 
 df_fsd <- df_fsd%>% filter(cost_category != 'Not Specified')
 
-df_fsd <- df_fsd %>% drop_na(expenditure_amt)
+df_fsd <- df_fsd %>% select(-c("expenditure_amt", "prime_partner_uei", "subrecipient_uei", "funding_account"))
 
 # # # TEST FUNCTIONS =======================================================================
 # # Test one mechanism on function pipeline
@@ -307,7 +307,7 @@ lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
 
 # ####### THIS SHORTENS LIST FOR TEST RUN #######
 # lst_ou <- lst_ou[1:2]
- lst_ou <- c("Guatemala")
+ lst_ou <- c("Zimbabwe")
 
 #create output folders folders locally
 dir_create(fisc_dir)
