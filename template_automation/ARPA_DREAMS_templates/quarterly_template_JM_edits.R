@@ -71,7 +71,7 @@ gdrive_path <- "1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR"
 gdrive_path <- "1w-RzE6V5mCn3fAJT8asL_2K-ieYYdVvK"
 
 # Select the Fiscal Year to use for the Quarterly Template
-curr_year = 2022
+curr_year = 2023
 
 # Select if ARPA, DREAMS, or Quarterly
 template_type <- "Quarterly" #"ARPA" # "DREAMS" #"Quarterly"
@@ -303,11 +303,11 @@ lst_mech <- df_fsd %>% distinct(mech_code) %>% pull()
 total_files <- length(lst_mech)
 
 # Get list of unique OUs 
-lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
+lst_ou <- df_fsd %>% distinct(countryname) %>% pull()
 
 # ####### THIS SHORTENS LIST FOR TEST RUN #######
 # lst_ou <- lst_ou[1:2]
- lst_ou <- c("Zimbabwe")
+ lst_ou <- c("Honduras")
 
 #create output folders folders locally
 dir_create(fisc_dir)
@@ -319,7 +319,7 @@ global_progress <- 1
 for (ou in lst_ou){
   ou_dir <- glue("{fisc_dir}/{ou}/")
   dir_create(ou_dir)
-  df_ou <- df_fsd %>% filter(operatingunit == ou)
+  df_ou <- df_fsd %>% filter(countryname == ou)
   # create list of unique mechanisms within an OU
   ou_lst_mech <- df_ou %>% distinct(mech_code) %>% pull()
   # Create output budget files by walking through all mechs in an OU and saving in the correct OU folder
