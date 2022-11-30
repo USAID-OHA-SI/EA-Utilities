@@ -60,7 +60,7 @@ fisc_dir <- "C:/Users/jmontespenaloza/Documents/test_folder"#"ARPA_templates"
 # Path where ARPA/DREAMS/Quarterly template is stored. 
 ### Note: Normally in the working directory, but adjust path as needed
  templatePath <- "ARPA_ER_template_v3.xlsx"
- templatePath <- "quarterly_template.xlsx" # Quarterly Template, made for CDI in Jan 2022
+ templatePath <- "quarterly_template_CC_v2.xlsx" # Quarterly Template, made for CDI in Jan 2022
  templatePath <- "DREAMS_template_v2.xlsx" # DREAMS template, never used in the end
  templatePath <- "Quarterly_DREAMS_ARPA_CC_v4.xlsx"
  templatePath <- "Quarterly_DREAMS_ARPA__v1.xlsx"
@@ -71,10 +71,10 @@ gdrive_path <- "1_09hkYm5sbz3h5fOlhITUBWmdIIWqhbR"
 gdrive_path <- "1w-RzE6V5mCn3fAJT8asL_2K-ieYYdVvK"
 
 # Select the Fiscal Year to use for the Quarterly Template
-curr_year = 2021
+curr_year = 2023
 
 # Select if ARPA, DREAMS, or Quarterly
-template_type <- "ARPA" #"ARPA" # "DREAMS" #"Quarterly"
+template_type <- "Quarterly" #"ARPA" # "DREAMS" #"Quarterly"
 
 # Set to TRUE if you want to drop cost categories
 drop_cost <- FALSE
@@ -83,7 +83,7 @@ drop_cost <- FALSE
 add_quarter <- FALSE
 
 # Set to TRUE if drop Workplan Budget data
-drop_workplan <- TRUE
+drop_workplan <- FALSE
 
 
 # Functions ============================================================================
@@ -289,7 +289,7 @@ df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program
 
 df_fsd <- df_fsd%>% filter(cost_category != 'Not Specified')
 
-df_fsd <- df_fsd %>% drop_na(expenditure_amt)
+df_fsd <- df_fsd %>% select(-c("expenditure_amt", "prime_partner_uei", "subrecipient_uei", "funding_account"))
 
 # # # TEST FUNCTIONS =======================================================================
 # # Test one mechanism on function pipeline
@@ -303,11 +303,11 @@ lst_mech <- df_fsd %>% distinct(mech_code) %>% pull()
 total_files <- length(lst_mech)
 
 # Get list of unique OUs 
-lst_ou <- df_fsd %>% distinct(operatingunit) %>% pull()
+lst_ou <- df_fsd %>% distinct(countryname) %>% pull()
 
 # ####### THIS SHORTENS LIST FOR TEST RUN #######
 # lst_ou <- lst_ou[1:2]
- lst_ou <- c("Kenya")
+ lst_ou <- c("Honduras")
 
 #create output folders folders locally
 dir_create(fisc_dir)
@@ -319,7 +319,7 @@ global_progress <- 1
 for (ou in lst_ou){
   ou_dir <- glue("{fisc_dir}/{ou}/")
   dir_create(ou_dir)
-  df_ou <- df_fsd %>% filter(operatingunit == ou)
+  df_ou <- df_fsd %>% filter(countryname == ou)
   # create list of unique mechanisms within an OU
   ou_lst_mech <- df_ou %>% distinct(mech_code) %>% pull()
   # Create output budget files by walking through all mechs in an OU and saving in the correct OU folder
