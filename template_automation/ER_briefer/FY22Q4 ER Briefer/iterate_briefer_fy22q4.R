@@ -33,11 +33,12 @@ extrafont::loadfonts(device = "win")
 
 ### Set Paths to download correct sources ====================================
 # Set fiscal yearto pull data from
-fiscal_yr <- 2022 #update next year
+fiscal_yr <- 2022 #update next year try the code next to me ->  fiscal_yr<-source_info(si_path(),"OU",return="fiscal_year")
 fiscal_yr_prev<-fiscal_yr-1
 periods<-c(fiscal_yr,fiscal_yr_prev)
 
 data_period<-source_info(si_path(),"OU")%>%stringr::str_sub(, -4)
+
 
 # Path where you want to save your PDF outputs, log files, and temp files
 save_dir <- "C:/Users/bkasdan/Documents/ER Briefer"
@@ -158,7 +159,7 @@ source(glue("{git_dir}/GitHub/stacks-of-hondos/scripts/utilities.R"))
 # Path of the iterate_briefer.R file
 src_path <- dirname(rstudioapi::getSourceEditorContext()$path)
 # Assumes er_briefer_source.R is in same folder as iterate_briefer.R
-source(glue("{src_path}/er_briefer_source (bk).R"))
+source(glue("{src_path}/er_briefer_source_fy22q4.R"))
 
 ############## MAIN ====================================================
 # Add path to where folders should be placed
@@ -195,7 +196,7 @@ df_hrh_temp <- gen_hrh(df_hrh_full) %>%
 
 # Manually set list of OUs to subset (list of names or of numeric index positions)
 # Note: Only use if you want to subset; otherwise leave it an empty vector
-ou_choice <- c("Ukraine")  # ex. c(1:5) or c("Angola", "Asia Region", "Cameroon")
+ou_choice <- c()  # ex. c(1:5) or c("Angola", "Asia Region", "Cameroon")
 ou <- unique(df_fsd_temp$operatingunit)
 #remove angola and Ukraine due to data issues
 ou<-ou[-1]
@@ -233,7 +234,7 @@ reports <- tibble(
 reports %>%
   # https://stackoverflow.com/questions/56606299/in-rstudio-knit-always-works-but-rmarkdownrender-fails-on-second-run-bu
   pwalk(rmarkdown::render, 
-        input = glue("{src_path}/er_briefer_test_rmd.Rmd"), 
+        input = glue("{src_path}/er_briefer_rmd_fy22q4.Rmd"), 
         output_dir = glue("{output_dir}/"),
         intermediates_dir = temp_dir)
 

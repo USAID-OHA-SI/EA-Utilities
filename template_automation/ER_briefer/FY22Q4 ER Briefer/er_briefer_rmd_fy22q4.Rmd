@@ -226,7 +226,9 @@ get_ou_agency_be %>%
   
 ```
 # Budget Execution by Program Area
-Below is a table of budget execution by program area.  At this more granular level, there can be even more reasonable explanations for apparent over or under expenditure.  Nevertheless, it will be important to explain any budget execution outside of the 90-110\% range, especially if the budget execution deviations do not align with the strategic goals of the country and\/or do not align with achievement of PEPFAR targets. Typically we do not focus on OU\/agency level budget execution as we recognize the nuanced programmatic goals of different mechanisms. That being said, OU\/agency level comparisons are discussed during the COP process and frequently used to defend\/attack budget decisions. Please note that PM is planned at the Prime partner-level only, subrecipient budgets are planned by non-PM program area. However, subrecipients with spending >$25,000 are encouraged to report their PM costs in their individual ER template. Thus no comparison should be made between budget plans of the prime’s PM and the total Prime + Subs’ PM. Prime’s can be assessed based on their budget execution of their PM.
+Below is a table of budget execution by program area.  At this more granular level, there can be even more reasonable explanations for apparent over or under expenditure.  Nevertheless, it will be important to explain any budget execution outside of the 90-110\% range, especially if the budget execution deviations do not align with the strategic goals of the country and\/or do not align with achievement of PEPFAR targets. Typically we do not focus on OU\/agency level budget execution as we recognize the nuanced programmatic goals of different mechanisms. That being said, OU\/agency level comparisons are discussed during the COP process and frequently used to defend\/attack budget decisions. 
+
+Please note that PM is planned at the Prime partner-level only, and subrecipient budgets are planned by non-PM program area. However, subrecipients with spending >$25,000 were encouraged to report their PM costs in their individual ER template. Thus no comparison should be made between budget plans of the prime’s PM and the total Prime + Subs’ PM. Prime’s can be assessed based on their budget execution of their PM only. The PM listed here might include subrecepient PM, hence why the budget execution could look high.
 
 ```{r echo=FALSE}
 ### Budget execution by program area ####################################
@@ -453,7 +455,7 @@ if(nrow(prep_ue)!=0){
 
 ```
 
-# KP Portfolio
+# Key Populations (KP) Portfolio
 * With an increased focus on PEPFAR investments in Key Populations, teams may be more frequently and consistently tagging additional program areas such as “Project Management” and “Above Site Planning” to “Key Populations”. This may result in an appearance of increased investment in Key Pops that primarily reflects an increase in attribution within KP-focused mechanisms.
 * A COP22 emphasis on expanding access to PrEP and setting budget controls may impact the investments we’re seeing in KP programs specific to PrEP. Examining the increase or decrease to other program areas (C&T, HTS, non-PrEP PREV, and ASP) may be important for understanding the general trend in KP investments and whether programs are meeting a specific country’s epidemiological gaps.
 

@@ -440,7 +440,7 @@ get_program_specific<-function(df_ue_temp, programs=c("HTS","C&T","OVC", "PrEP")
     filter(program %in% programs)%>%
      select_if(~!( all(. == 0)))%>%
     # special for FY22 Q4 removing all ER and budget with no funding
-   filter((expenditure_amt>0 | cop_budget_total> 0))%>%
+   # filter((expenditure_amt>0 | cop_budget_total> 0))%>%
     select(-any_of(c("operatingunit")))
   return(df)
 }
