@@ -1,9 +1,9 @@
 *.csv
 *.xlsx
-*.png
 template_automation/ER21_Financial_Programmatic/ST JOHN'S COMMUNITY CENTRE
 template_automation/ER21_Financial_Programmatic/Kenya_84483_ST JOHN'S COMMUNITY CENTRE
 *.log
 *.pdf
 *.docx
 *.txt
+test.png
