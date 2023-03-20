@@ -209,7 +209,7 @@ FAST_Commodities<-function(df){
   df<-read_xlsx(df, "Commodities-E", skip=3)
   
   df<- df %>%  
-    dplyr::select( -c("Validation Message":"View Initiative on Initiative-E")) %>% 
+    dplyr::select( -c("FAST Tabs","Message")) %>% 
     dplyr::rename("Prime Partner Name" = `Partner Name`)
   
   #Convert character columns to characters
@@ -227,7 +227,7 @@ FAST_Commodities<-function(df){
   
   #Separate out program area, sub program area, beneficiary, sub beneficiary, and interaction type
   df<- df %>%separate(col = "Program Area", into=c("Program Area", "Sub Program Area"), sep=":") %>%
-    separate(col = "Sub Program Area", into=c("Sub Program Area", "Interaction Type"), sep="-") %>%
+    separate(col = "Sub Program Area", into=c("Sub Program Area", "Interaction Type"), sep="-") 
     
     #Rename to match BUDGET_ER_MER Dataset
     df<- df %>%dplyr::rename("Commodity Unit Cost" =`Unit Cost`,
@@ -246,8 +246,8 @@ FAST_Commodities<-function(df){
   #Convert  numeric  columns to numeric
   df<- df %>%  
     dplyr::mutate_at(vars(`Commodity Quantity`,`Commodity Unit Price`,
-                          `Procurement Management`,`Global Freight`, `Global Freight $`
-                          , `Data Quality $`, `Commodity Unit Cost`, `Total Planned Funding`, `Remaining $`), funs(as.numeric))
+                         `Global Freight`, `Global Freight $`,
+                          `Commodity Unit Cost`, `Total Planned Funding`, `Remaining $`), funs(as.numeric))
   
   #Drop all rows without a MECH ID specified 
   df<- df %>%   
@@ -270,9 +270,9 @@ FAST_Commodities<-function(df){
 #The commodities tab doesn't have certain identifiers (Funding Agency,OU) 
 #so this list will be used later to join to make the final commodities data frame
 FAST_MECHSLIST<-function(df){
-  df<-read_xlsx(df, "Mechs List-E", skip=1)
+  df<-read_xlsx(df, "Mechs List-E", skip=3)
   df<- df %>%  
-    dplyr::select ("OU", "Mechanism ID") %>%
+    dplyr::select ("OU","Country", "Mechanism ID") %>%
     dplyr::rename("Operating Unit"= "OU") %>% 
     dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`))
   return(df)
@@ -280,7 +280,7 @@ FAST_MECHSLIST<-function(df){
 
 
 FAST_Earmarks_IM<-function(df){
-  df<-read_xlsx(here("COP23 Tools/FASTS/Rwanda_COP23_FAST_V1.xlsx"), "Standard COP Matrix-E", skip=3)
+  df<-read_xlsx(df, "Standard COP Matrix-E", skip=3)
   #Drop columns you don't need and rename  
   df<- df %>%
     dplyr::select(-c('FAST Tabs','SCM Row ID','Operating Unit',
@@ -292,7 +292,7 @@ FAST_Earmarks_IM<-function(df){
                   # "Fiscal Year" = `Implementation Year`,
                   "Program Area" = `Major Program`,
                   "Sub Program Area" = `Sub Program`,
-                  "Interaction Type" = `SD/NSD`,)
+                  "Interaction Type" = `SD/NSD`,) %>% 
   #"Beneficiary" = `Targeted Beneficiary`)
   #"Sub Beneficiary" = `Minor Beneficiary`) %>% 
   
