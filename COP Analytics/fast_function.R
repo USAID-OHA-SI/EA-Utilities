@@ -60,7 +60,7 @@ FAST_Intervention<-function(df){
   df<- read_xlsx(df,"Standard COP Matrix-E", skip=3)
   
   # Drop columns you don't need and rename  
-  df<- df %>% dplyr::select( -c('FAST Tabs','SCM Row ID','Operating Unit',
+  df<- df %>% dplyr::select( -c('FAST Tabs','SCM Row ID',
                                 'Appropriation Year', 'Initiative',
                                 'Funding Category','Blank Number':'ESF', 
                                 'Water':'Message'))%>%
@@ -87,7 +87,7 @@ FAST_Intervention<-function(df){
   
   #remove N/A's
   #Drop all rows without an OU specified 
-  #df <- df %>%  drop_na('Operating Unit')
+  df <- df %>%  drop_na('Operating Unit')
   
   #replace NAs with 0s
   df<-df%>%
@@ -108,7 +108,7 @@ FAST_CCA<-function(df){
   df<-read_xlsx(df,"Standard COP Matrix-E", skip=3)
   
   # Drop columns you don't need and rename  
-  df<- df %>% dplyr::select( -c('FAST Tabs','SCM Row ID','Operating Unit',
+  df<- df %>% dplyr::select( -c('FAST Tabs','SCM Row ID',
                                 'Appropriation Year', 'Initiative',
                                 'Funding Category','Blank Number':'Actual Year 2 %',
                                 'COVID Adaptation-GHP-State':'Message'))%>%
@@ -125,7 +125,7 @@ FAST_CCA<-function(df){
     dplyr::mutate(`Data Stream`="FAST Cross Cutting Attribution")
   
   #remove N/A's
-  #df <- df %>%drop_na(`Operating Unit`)
+  df <- df %>%drop_na(`Operating Unit`)
   
   #replace NAs with 0s
   df<-df%>%
@@ -156,7 +156,7 @@ FAST_Initiative<-function(df){
   #nested read_csv. Can be removed and run separately
   df<-read_xlsx(df,"Standard COP Matrix-E", skip=3)
   #include columns of interest
-  df<- df %>% dplyr::select(-c('FAST Tabs','SCM Row ID','Operating Unit',
+  df<- df %>% dplyr::select(-c('FAST Tabs','SCM Row ID',
                                'Appropriation Year',
                                'Blank Number':'COP 22 Budget', 'ESF',
                                'Default Year 2 %':'Actual Year 2 %',
@@ -192,7 +192,7 @@ FAST_Initiative<-function(df){
   df <- df %>% dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))
   
   #Drop all rows without an OU specified 
-  #df <- df %>%  drop_na('Operating Unit') 
+  df <- df %>%  drop_na('Operating Unit') 
   
   #Add in agency category column to group agencies
   df<-df %>% agency_category_fast()
@@ -272,7 +272,7 @@ FAST_Commodities<-function(df){
 FAST_MECHSLIST<-function(df){
   df<-read_xlsx(df, "Mechs List-E", skip=3)
   df<- df %>%  
-    dplyr::select ("OU","Country", "Mechanism ID") %>%
+    dplyr::select ("OU", "Mechanism ID") %>%
     dplyr::rename("Operating Unit"= "OU") %>% 
     dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`))
   return(df)
@@ -283,7 +283,7 @@ FAST_Earmarks_IM<-function(df){
   df<-read_xlsx(df, "Standard COP Matrix-E", skip=3)
   #Drop columns you don't need and rename  
   df<- df %>%
-    dplyr::select(-c('FAST Tabs','SCM Row ID','Operating Unit',
+    dplyr::select(-c('FAST Tabs','SCM Row ID',
                      'Appropriation Year',  'Initiative',
                      'Funding Category','Blank Number':'COVID Adaptation-Applied Pipeline', 'C&T Non-PM':'Message'))%>%
     
@@ -303,7 +303,7 @@ FAST_Earmarks_IM<-function(df){
   
   #remove N/A's
   #df <- df %>%  
-  #drop_na(`Operating Unit`)
+  df <- df %>%drop_na(`Operating Unit`)
   
   #replace NAs with 0s
   df <- df %>%  
