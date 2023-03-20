@@ -1,7 +1,7 @@
 ---
 title: "COP22 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
-date: "03/14/2023" #LAST UPDATE
+date: "03/20/2023" #LAST UPDATE
 output: html_document
 ---
 
@@ -61,7 +61,7 @@ library(here)
 The "here()" funcitons constructs paths to your project's files, it will locate the files relative to your project root.
 ```{r}
   here()
-  here("COP23 Tools")
+  here("COP23 Tools/FASTS")
  
   set_email("vdacosta@usaid.gov")
   glamr::load_secrets()
@@ -149,9 +149,9 @@ df_dp<- left_join(df_dp, df.rename, by = "Mechanism ID") %>%
   
 #Data frame for Operating Unit and Country
  
-   df.OU_Country <- read.csv (
-    "~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv", check.names = FALSE,  
-    fileEncoding="UTF-8-BOM")
+   #df.OU_Country <- read.csv (
+   # "~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv", check.names = FALSE,  
+    #fileEncoding="UTF-8-BOM")
 
 
 ```
@@ -161,14 +161,13 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 ```{r}
   #bind all data frames
   df.COP22PlanningDataset<-bind_rows(df.Intervention,df.CCA, df.Initiative,  
-                                    df.Commodities_pre, df.Earmarks_IM) %>% 
-  COP22_master_clean()
+                                    df.Commodities_pre, df.Earmarks_IM)
   
-  df.COP22PlanningDataset<-left_join(df.COP22PlanningDataset, df.MechsList, by = "Mechanism ID")     %>% dplyr::rename("Country" = `Operating Unit`)
-      
+  df.COP22PlanningDataset<-left_join(df.COP22PlanningDataset, df.MechsList, by = "Mechanism ID") %>% 
+  COP22_master_clean()    
   
   #add in Operating Unit
-   df.COP22PlanningDataset <- merge(df.COP22PlanningDataset, df.OU_Country, by = "Country")
+  # df.COP22PlanningDataset <- merge(df.COP22PlanningDataset, df.OU_Country, by = "Country")
     #dplyr::rename("Country" = `Operating Unit`)
   #RUN IF HAVE FASTS AND DATAPACK 
   df.COP22PlanningDataset_Final <-bind_rows(df.COP22PlanningDataset,df_dp) 
@@ -183,7 +182,7 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
   glimpse(df.Earmarks_OU)
   df.COP21PlanningDataset%>%
     group_by(`Fiscal Year`, `Data Stream`) %>%
-    filter (`Fiscal Year`==2023)  %>%
+    filter (`Fiscal Year`==2024)  %>%
     summarize (sum(`Total Planned Funding`))
 ```
 
@@ -194,7 +193,7 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-write_csv(df.COP22PlanningDataset_Final,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/FAST_DATAPACK_06_13_22.csv"))
+write_csv(df.COP22PlanningDataset,here("C:/Users/jmontespenaloza/Downloads/test.csv"))
 
 ##DATAPACK OUTPUT
   write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_04_13_22.csv"))
