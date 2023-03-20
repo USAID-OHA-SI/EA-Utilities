@@ -149,9 +149,9 @@ df_dp<- left_join(df_dp, df.rename, by = "Mechanism ID") %>%
   
 #Data frame for Operating Unit and Country
  
-   #df.OU_Country <- read.csv (
-   # "~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv", check.names = FALSE,  
-    #fileEncoding="UTF-8-BOM")
+   df.OU_Country <- read.csv (
+    "~/GitHub/EA-Utilities/COP Analytics/OU_Country.csv", check.names = FALSE,  
+    fileEncoding="UTF-8-BOM")
 
 
 ```
@@ -160,15 +160,15 @@ Master COP22 FAST/DATAPACK File
 Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Commodities'
 ```{r}
   #bind all data frames
-  df.COP22PlanningDataset<-bind_rows(df.Intervention,df.CCA, df.Initiative,  
-                                    df.Commodities_pre, df.Earmarks_IM)
+    df.COP22PlanningDataset<-bind_rows(df.Intervention,df.CCA, df.Initiative,  
+                                    df.Commodities_pre, df.Earmarks_IM) %>% 
+  COP22_master_clean()
   
-  df.COP22PlanningDataset<-left_join(df.COP22PlanningDataset, df.MechsList, by = "Mechanism ID") %>% 
-  COP22_master_clean()    
+  df.COP22PlanningDataset<-left_join(df.COP22PlanningDataset, df.MechsList, by = "Mechanism ID")     %>% dplyr::rename("Country" = `Operating Unit`)
+      
   
   #add in Operating Unit
-  # df.COP22PlanningDataset <- merge(df.COP22PlanningDataset, df.OU_Country, by = "Country")
-    #dplyr::rename("Country" = `Operating Unit`)
+   df.COP22PlanningDataset <- merge(df.COP22PlanningDataset, df.OU_Country, by = "Country")
   #RUN IF HAVE FASTS AND DATAPACK 
   df.COP22PlanningDataset_Final <-bind_rows(df.COP22PlanningDataset,df_dp) 
 
