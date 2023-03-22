@@ -83,7 +83,7 @@ FAST_Intervention<-function(df){
   #Convert columns into characters and numeric
   df<-df%>%
     dplyr::mutate_at(vars(`Planning Cycle`: `Cost Type`), funs(as.character)) %>% 
-    dplyr::mutate_at(vars(`COP Budget New Funding`:`Total Planned Funding`), funs(as.numeric))
+    dplyr::mutate_at(vars(`COP Budget New Funding`:`Actual Year 2 %`), funs(as.numeric))
   
   #remove N/A's
   #Drop all rows without an OU specified 
