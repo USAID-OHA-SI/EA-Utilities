@@ -160,7 +160,7 @@ Master COP22 FAST/DATAPACK File
 Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Commodities'
 ```{r}
   #bind all data frames
-    df.COP22PlanningDataset<-bind_rows(df.Intervention,df.CCA, df.Initiative,  
+   df.COP22PlanningDataset<-bind_rows(df.Intervention,df.CCA, df.Initiative,  
                                     df.Commodities_pre, df.Earmarks_IM) %>% 
   COP22_master_clean()
   
@@ -193,7 +193,7 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-write_csv(df.COP22PlanningDataset,here("C:/Users/jmontespenaloza/Downloads/test.csv"))
+write_csv( df.COP22PlanningDataset,here("C:/Users/jmontespenaloza/Downloads/test.csv"))
 
 ##DATAPACK OUTPUT
   write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_04_13_22.csv"))
