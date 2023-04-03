@@ -61,7 +61,7 @@ library(here)
 The "here()" funcitons constructs paths to your project's files, it will locate the files relative to your project root.
 ```{r}
   here()
-  here("COP23 Tools/FASTS")
+  here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FASTS")
  
   set_email("vdacosta@usaid.gov")
   glamr::load_secrets()
@@ -115,7 +115,8 @@ df_dp<- left_join(df_dp, df.rename, by = "Mechanism ID") %>%
 
 #identify all the FAST files  
   #Fast<-list.files(here("COP22 TOOLS/FASTS"),full.names = TRUE)
-  Fast<- list.files("C:/Users/jmontespenaloza/Documents/COP23 TOOLS/FASTS", full.names = TRUE)
+  Fast<- list.files("C:/Users/jmontespenaloza/Documents/COP23 TOOLS/FASTS WHR", full.names = TRUE)
+  
   #Data frame for Intervention Budget
   df.Intervention <- purrr::map_dfr(.x = Fast,
                                   .f = ~ FAST_Intervention(.x))
@@ -174,7 +175,18 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
 
 
 ```
+##Step 6.2: Bind Dataframes WHR
+```{r}
+  #bind all data frames
+   df.COP22PlanningDataset_WHR<-bind_rows(df.Intervention,df.CCA, df.Initiative,df.Commodities_pre, df.Earmarks_IM) %>%      
+  COP22_master_clean_WHR()
+  
+  df.COP22PlanningDataset_WHR<-merge(df.COP22PlanningDataset_WHR, df.MechsList, by = "Mechanism ID") 
+  
+#final Merge 
+   df.COP22PlanningDataset_Final<-bind_rows(df.COP22PlanningDataset,df.COP22PlanningDataset_WHR)
 
+```
 ##Step 7:Review Data
 ```{r}
   unique(df.COP22PlanningDataset$`Agency Category`)
@@ -193,7 +205,7 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-write_csv( df.COP22PlanningDataset,here("C:/Users/jmontespenaloza/Downloads/test.csv"))
+write_csv(df.COP22PlanningDataset_Final,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_03_30_23.csv"))
 
 ##DATAPACK OUTPUT
   write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_04_13_22.csv"))
