@@ -48,7 +48,20 @@ COP22_master_clean <- function(df) {
   
   
 }
+COP22_master_clean_WHR <- function(df) {
+  df <- df %>%
+    dplyr::rename("Country" = `Operating Unit`) %>% 
+    #dplyr::select( -c('Operating Unit')) %>% 
+    dplyr::filter(`Total Planned Funding` !=0) %>%
+    dplyr::mutate_at(vars(`COP Budget New Funding`),~replace_na(.,0))%>%
+    dplyr::mutate_at(vars(`COP Budget Pipeline`),~replace_na(.,0)) %>% 
+    dplyr::select('Planning Cycle':'Total Planned Funding','Data Stream', 'Agency Category', 'Cross-Cutting Attribution':'Commodity Unit Cost', 'Earmark') %>% 
+    dplyr::mutate(`Program Area`= recode (`Program Area`, "c&T"= "C&T")) #%>% 
 
+  
+  
+}
+glimpse(df)
 #By first creating the functions, it will allow us to, later on, clean up/transform the 
 #datasets according to variables that are needed to bind the data.
 
