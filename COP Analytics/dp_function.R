@@ -1,9 +1,9 @@
 
 #might not need all of these
-library(tameDP) #version 3.2.4
+library(tameDP) #version 5.1.0 for COP23
 
  
-#COP22 Datapack Function
+#COP23 Datapack Function- COP23 updates country, funding_agency and prime_partner_name are named differently this year
   #the first 2 steps, reading in files, mapping dataframe are in the direct code#
 
   datapack_im_tab<-function(df){
@@ -14,22 +14,22 @@ library(tameDP) #version 3.2.4
     dplyr::filter(standardizeddisaggregate != "KeyPop") %>%
     dplyr::filter(standardizeddisaggregate != "Age/Sex/DREAMS") %>% 
     dplyr::filter(standardizeddisaggregate != "Age/Sex/Preventive") %>% 
-    dplyr::group_by(operatingunit, countryname, fundingagency, mech_code, primepartner, mech_name, indicator, fiscal_year, numeratordenom) %>%
+    dplyr::group_by(operatingunit, country, funding_agency, mech_code, prime_partner_name, mech_name, indicator, fiscal_year, numeratordenom) %>%
     dplyr::summarise(targets = sum(targets, na.rm = TRUE)) %>% 
     dplyr::ungroup() %>% 
     dplyr::rename(`Operating Unit` = operatingunit,
-                  `Country` = countryname,
-                  `Funding Agency` = fundingagency,
+                  `Country` = country,
+                  `Funding Agency` = funding_agency,
                   `Mechanism ID` = mech_code,
-                  `Prime Partner Name` = primepartner,
+                  `Prime Partner Name` = prime_partner_name,
                   `Mechanism Name` = mech_name,
                   `Fiscal Year` = fiscal_year,
                   Indicator = indicator,
                   Target = targets) %>%
    
-    dplyr::mutate(`Fiscal Year` = "2023",
+    dplyr::mutate(`Fiscal Year` = "2024",
                   `Data Stream` = "MER",
-                  `Planning Cycle`="COP22")
+                  `Planning Cycle`="COP23")
     
     #df<-df %>% agency_category_fast()
  
@@ -49,7 +49,8 @@ library(tameDP) #version 3.2.4
                                                     Indicator == "TX_NEW" ~ "C&T",
                                                     Indicator == "PrEP_CT" ~ "PREV",
                                                     Indicator == "PrEP_NEW" ~ "PREV",
-                                                    Indicator == "VMMC" ~ "PREV")) 
+                                                    Indicator == "VMMC_CIRC" ~ "PREV")) 
   
   return(df)
-} 
+  } 
+  

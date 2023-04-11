@@ -1,7 +1,7 @@
 ---
 title: "COP22 FAST Datapack Code"
 author: "Jairo Montes & Vanessa Da Costa"
-date: "03/20/2023" #LAST UPDATE
+date: "04/11/2023" #LAST UPDATE
 output: html_document
 ---
 
@@ -62,6 +62,7 @@ The "here()" funcitons constructs paths to your project's files, it will locate 
 ```{r}
   here()
   here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FASTS")
+  here("C:/Users/vdacosta/Documents/R/COP23 Tools/FASTS")
  
   set_email("vdacosta@usaid.gov")
   glamr::load_secrets()
@@ -95,7 +96,7 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
 
 #IMPORT DATASET WITH CORRECT WHR COUNTRIES TO MECHANISM MAPPING
 df.rename<- read.csv("C:/Users/vdacosta/Documents/R/COP23 TOOLS/rename.csv" , check.names = FALSE) %>% 
-    rename("Mechanism ID"= "ï»¿mech_code") %>% 
+    rename("Mechanism ID"= "mech_code") %>% 
            dplyr::mutate(`Mechanism ID`= as.character(`Mechanism ID`))
  
 #Data frame for targets
@@ -114,9 +115,12 @@ df_dp<- left_join(df_dp, df.rename, by = "Mechanism ID") %>%
     rename("Country"= "countryname2") 
 
 #identify all the FAST files  
-  #Fast<-list.files(here("COP22 TOOLS/FASTS"),full.names = TRUE)
   Fast<- list.files("C:/Users/jmontespenaloza/Documents/COP23 TOOLS/FASTS WHR", full.names = TRUE)
-  
+  #RUN FIRST with step 6
+  Fast<- list.files("C:/Users/vdacosta/Documents/R/COP23 TOOLS/FASTS", full.names = TRUE)
+  #RUN SECOND with step 6.2
+  Fast<- list.files("C:/Users/vdacosta/Documents/R/COP23 TOOLS/FASTS WHR", full.names = TRUE)
+
   #Data frame for Intervention Budget
   df.Intervention <- purrr::map_dfr(.x = Fast,
                                   .f = ~ FAST_Intervention(.x))
@@ -171,7 +175,7 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
   #add in Operating Unit
    df.COP22PlanningDataset <- merge(df.COP22PlanningDataset, df.OU_Country, by = "Country")
   #RUN IF HAVE FASTS AND DATAPACK 
-  df.COP22PlanningDataset_Final <-bind_rows(df.COP22PlanningDataset,df_dp) 
+  df.COP22PlanningDataset <-bind_rows(df.COP22PlanningDataset,df_dp) 
 
 
 ```
@@ -184,7 +188,11 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
   df.COP22PlanningDataset_WHR<-merge(df.COP22PlanningDataset_WHR, df.MechsList, by = "Mechanism ID") 
   
 #final Merge 
-   df.COP22PlanningDataset_Final<-bind_rows(df.COP22PlanningDataset,df.COP22PlanningDataset_WHR)
+   df.COP22PlanningDataset_Final<-bind_rows(df.COP22PlanningDataset,df.COP22PlanningDataset_WHR) %>% 
+       dplyr::select(-c(`Fiscal Year`)) %>% 
+     dplyr::rename("Targets" = `Target`)
+     #because this is added in Tableau Prep
+
 
 ```
 ##Step 7:Review Data
@@ -203,7 +211,7 @@ Update the date
 ```{r}
 
 ## FAST + DATAPACK OUTPUT
- write.csv(df.COP22PlanningDataset_Final, paste0("FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
+ write.csv(df.COP22PlanningDataset_Final, paste0("C:/Users/vdacosta/Documents/R/FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
 write_csv(df.COP22PlanningDataset_Final,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_03_30_23.csv"))
 
