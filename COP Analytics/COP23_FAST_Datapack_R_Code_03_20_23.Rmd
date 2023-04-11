@@ -88,13 +88,13 @@ Read in the FAST & Datapack and clean it using our functions. Pattern is helpful
 ```{R}
 #Read in FAST & DATAPACK files
 #identify all the Data Pack files (pull in validated datapacks apps.datim.org/datapack)
-  datapack<- list.files("C:/Users/vdacosta/Documents/R/COP22 TOOLS/DATAPACK", full.names = TRUE)
+  datapack<- list.files("C:/Users/vdacosta/Documents/R/COP23 TOOLS/DATAPACK", full.names = TRUE)
 
 # datapack<-list.files(here("COP22 TOOLS/DATAPACK"),full.names = TRUE)
 
 
 #IMPORT DATASET WITH CORRECT WHR COUNTRIES TO MECHANISM MAPPING
-df.rename<- read.csv("C:/Users/vdacosta/Documents/R/COP22 TOOLS/rename.csv" , check.names = FALSE) %>% 
+df.rename<- read.csv("C:/Users/vdacosta/Documents/R/COP23 TOOLS/rename.csv" , check.names = FALSE) %>% 
     rename("Mechanism ID"= "ï»¿mech_code") %>% 
            dplyr::mutate(`Mechanism ID`= as.character(`Mechanism ID`))
  

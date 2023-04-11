@@ -52,7 +52,7 @@ here::here("USAID Staffing Updates")
 
   ##UPDATE Master File with latest data collection date.
     #rEMINDER: DELETE 'MASTER' file  & completion tracker from file folder and ensure only country files are in it##
-  df1<-read_excel("Final Aggregated Datasets/September 2021 Final Dataset/Staffing_Master_Dataset_Oct25_AddedNewUniqueIDs_V2.xlsx") %>% 
+  df1<-read_excel("Final Aggregated Datasets/February 2022 Final Dataset/Staffing_Master_Dataset_March2122_AddedNewUniqueIDs.xlsx") %>% 
     dplyr::mutate(`datacollection_date`= as.character(`datacollection_date`)) %>% 
     dplyr::mutate(`hiringcascade`= as.character(`hiringcascade`)) %>% 
     dplyr::mutate(`comments`=" ")
@@ -63,12 +63,12 @@ here::here("USAID Staffing Updates")
                                                        'staffingschedule', 'hiringcascade', 'datacollection_date', 'uniqueid', 'comments')
 #STEP 4: READ IN ALL NEW TEMPLATES 
   ##UPDATE pathway
-  path <- "Mission Health Staffing Update_ Feb 2022"  #Update file
+  path <- "Mission Health Staffing Update_ Sept 2022"  #Update file
     Data<- list.files(path, pattern = "*.xlsx", recursive = TRUE)
   
 read_xlsx_files <- function(x){
-  df <- read_xlsx(path = paste(path, x, sep = "/"), sheet="Vacant Positions", skip=1)  %>%
-    dplyr::mutate(`datacollection_date`= "2022-02-01") %>% ##UPDATE date to first of month
+  df <- read_xlsx(path = paste(path, x, sep = "/"), sheet="Vacant Positions", skip=1) %>%
+    dplyr::mutate(`datacollection_date`= "2022-09-01") %>% ##UPDATE date to first of month
     dplyr::mutate(`Operating Unit`= as.character(`Operating Unit`))%>% 
     dplyr::mutate(`staffingid`= as.character(`staffingid`)) %>% 
     dplyr::mutate(`percentpepfar`= as.character(`percentpepfar`)) %>% 
@@ -83,9 +83,9 @@ read_xlsx_files <- function(x){
     dplyr::mutate(`staffingschedule`= as.character(`staffingschedule`)) %>% 
     dplyr::mutate(`datacollection_date`= as.character(`datacollection_date`)) %>% 
     dplyr::mutate(`staffingschedule`= as.character(`staffingschedule`)) %>% 
-    dplyr::mutate(`hiringcascade_Sep2021`= as.character(`hiringcascade_Sep2021`)) %>% ##UPDATE
-    dplyr::mutate(`comments_Sep2021`= as.character(`comments_Sep2021`)) %>% #can remove comments before reading in?
-    mutate(hiringcascade=ifelse(is.na(hiringcascade),  `hiringcascade_Sep2021`, `hiringcascade`)) %>% ##For any blank hiring cascades, carry over from previous reporting period
+    dplyr::mutate(`hiringcascade_Feb2022`= as.character(`hiringcascade_Feb2022`)) %>% ##UPDATE
+    dplyr::mutate(`comments_Feb2022`= as.character(`comments_Feb2022`)) %>% #can remove comments before reading in?
+    dplyr:: mutate(hiringcascade=ifelse(is.na(hiringcascade),`hiringcascade_Feb2022`, `hiringcascade`)) %>% ##For any blank hiring cascades, carry over from previous reporting period
     dplyr::mutate(`hiringcascade`= as.character(`hiringcascade`)) %>% 
     dplyr::mutate(`uniqueid`= as.character(`uniqueid`)) %>% 
     dplyr::mutate(`comments`= as.character(`comments`))
@@ -93,7 +93,7 @@ read_xlsx_files <- function(x){
 
 
 #STEP 5: BIND TOGETHER ALL NEW TEMPLATES
-df2 <- lapply(Data, read_xlsx_files ) %>% 
+df2 <- lapply(Data, read_xlsx_files) %>% 
 bind_rows()
 
 df3<- df2 %>% dplyr::select('country', 'staffingid',
@@ -171,7 +171,7 @@ Staffing_Levels_Final<- left_join(Staffing_Levels_draft, Staffing_Levels_oldmont
 
 #Export Data  
 
-write_csv(Staffing_Aggregated_Final,"Staffing_Master_Dataset_March2122_MissingNewUniqueIDs.csv")
+write_csv(Staffing_Aggregated_Final,"Staffing_Master_Dataset_Oct122022_MissingNewUniqueIDs.csv")
 
 #On updates with total staffing
 write_csv(Staffing_Levels_Sep21,"TotalStaffCounts_Aggregated_Dataset_Oct22.csv")
