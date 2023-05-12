@@ -114,13 +114,16 @@ df_all<-map_dfr(.x = datapack,
 df_dp<- df_all %>% datapack_im_tab() %>% 
     rename("Country2"= "Country") 
 
-df_dp<- left_join(df_dp, df.rename, by = "Mechanism ID") %>% 
-  dplyr::mutate(countryname2 = case_when(`Mechanism ID`== "86252" | `Mechanism ID`== "100129"| `Mechanism ID`== "100139"|  `Mechanism ID`== "81114"|  `Mechanism ID`== "100110"|  `Mechanism ID`== "100105"|  `Mechanism ID`== "84311" |  `Mechanism ID`== "100130"|  `Mechanism ID`== "100140"|  `Mechanism ID`== "81144"|  `Mechanism ID`== "100106"|  `Mechanism ID`== "100111"|  `Mechanism ID`== "84230" |  `Mechanism ID`== "100131"|  `Mechanism ID`== "100141"|  `Mechanism ID`== "81176"|  `Mechanism ID`== "100112"|  `Mechanism ID`== "84360" |  `Mechanism ID`== "81325"|  `Mechanism ID`== "100113"| `Mechanism ID`== "100138"|   `Mechanism ID`== "100143"| `Mechanism ID`== "100114"|  `Mechanism ID`== "84730"  ~ Country, TRUE ~ Country2)) %>% 
+df_dp2<- left_join(df_dp, df.rename, by = "Mechanism ID") %>% 
+  dplyr::mutate(countryname2 = case_when(`Country2` == "Brazil"
+     ~ Country, TRUE ~ Country2)) %>% 
     select (-c(Country2, Country)) %>% 
     rename("Country"= "countryname2") 
 
 #identify all the FAST files  
   Fast<- list.files("C:/Users/jmontespenaloza/Documents/COP23 TOOLS/FASTS WHR", full.names = TRUE)
+  
+    Fast<- list.files("C:/Users/jmontespenaloza/Documents/COP23 TOOLS/FASTS", full.names = TRUE)
   #RUN FIRST with step 6
   Fast<- list.files("C:/Users/vdacosta/Documents/R/COP23 TOOLS/FASTS", full.names = TRUE)
   #RUN SECOND with step 6.2
@@ -180,7 +183,7 @@ Note: Bind dataframes do not include df. Commodities_pre but only include 'df.Co
   #add in Operating Unit
    df.COP22PlanningDataset <- merge(df.COP22PlanningDataset, df.OU_Country, by = "Country")
   #RUN IF HAVE FASTS AND DATAPACK 
-  df.COP22PlanningDataset <-bind_rows(df.COP22PlanningDataset,df_dp) 
+  df.COP22PlanningDataset <-bind_rows(df.COP22PlanningDataset,df_dp2) 
 
 
 ```
@@ -236,10 +239,10 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("C:/Users/vdacosta/Documents/R/FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-write_csv(df.COP22PlanningDataset_Final,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_DATAPACK_04_13_23.csv"))
+write_csv(df.COP22PlanningDataset_Final,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_DATAPACK_05_11_23.csv"))
 
 
-write_csv(df.fast_raw,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_Raw_04_13_23.csv"))
+write_csv(df.fast_raw,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_Raw_05_11_23 (OVC).csv"))
 
 ##DATAPACK OUTPUT
   write_csv(df_all,here("C:/Users/vdacosta/Documents/R/COP22 TOOLS/Datapack_04_13_22.csv"))
