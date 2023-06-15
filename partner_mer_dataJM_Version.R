@@ -9,6 +9,7 @@
 
   # Libraries
 install.packages("patchwork")
+install.packages("tidytext")
 library(glamr)
 library(gophr)
 library(tidyverse)
@@ -38,7 +39,7 @@ library(fs)
       #glamr::return_latest("OU_IM")%>%
       #gophr::read_msd()
 
-  df_msd2 <- read_csv("C:/Users/jmontespenaloza/Documents/Raw Datasets/FAST_DATAPACK_06_13_22.csv", col_names = TRUE)
+  df_msd2 <- read_csv("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_DATAPACK_05_26_23.csv", col_names = TRUE)
   
 
   print_mer_cop20 <- function(mechs){
@@ -69,17 +70,17 @@ library(fs)
   df<-df_msd2%>%
     dplyr::filter(`Data Stream` == "MER") %>%  
     #dplyr::filter(standardizeddisaggregate=="Total Numerator")%>%
-    dplyr::filter(`Fiscal Year` =="2023")%>%
+    dplyr::filter(`Fiscal Year` =="2024")%>%
     dplyr::filter(`Funding Agency`=="USAID")%>%
     mutate(Country = ifelse(`Operating Unit` == Country, `Operating Unit`, glue("{`Operating Unit`}-{Country}")))%>%
     #mutate("country-mech"=glue("{Country}-{mech_code}"))%>%
     
     #select(`Fiscal year`,`Operating Unit`,Country,`Funding Agency`,`Prime Partner Name`,`Mechanism ID`,`Mechanism Name`,`country-mech`,indicator,targets,cumulative)%>%
-    select(`Fiscal Year`,`Operating Unit`,Country,`Funding Agency`,`Prime Partner Name`,`Mechanism ID`,`Mechanism Name`,Indicator,Target)%>%
+    select(`Fiscal Year`,`Operating Unit`,Country,`Funding Agency`,`Prime Partner Name`,`Mechanism ID`,`Mechanism Name`,Indicator,Targets)%>%
     #group_by(Country,`country-mech`, `Mechanism ID`,`Mechanism Name`, `Prime Partner Name`, `Fiscal Year`,Indicator)%>%
     group_by(Country, `Mechanism ID`,`Mechanism Name`, `Prime Partner Name`, `Fiscal Year`,Indicator)%>%
     
-    summarise_at(vars(Target), sum, na.rm = TRUE) %>% 
+    summarise_at(vars(Targets), sum, na.rm = TRUE) %>% 
     ungroup() %>% 
     #mutate(target_achievement=percent_clean(cumulative,targets))%>%
     #ungroup()%>% 
