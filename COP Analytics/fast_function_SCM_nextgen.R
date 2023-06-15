@@ -220,86 +220,8 @@ FAST_Initiative<-function(df){
   return(df)
 }
 
-#Clean the FAST Commodities tab using the function for Initiative data. 
-#pending
-FAST_Commodities<-function(df){
-  df<-read_xlsx(df, "Commodities-E", skip=3)
-  
-  df<- df %>%  
-    dplyr::select( -c("FAST Tabs","Message")) %>% 
-    dplyr::rename("Prime Partner Name" = `Partner Name`)
-  
-  #Convert character columns to characters
-  df<- df %>%
-    dplyr::mutate_at(vars(`Mechanism Name`:`Approval Date`), funs(as.character)) 
-  
-  #Remove dashes in Facility-based testing and Community-Based Testing temporarily
-  df<- df %>%
-    dplyr::mutate(`Program Area (Service Delivery Only)`= recode (`Program Area (Service Delivery Only)`, 
-                                                                  "HTS: Facility-based testing-SD"= "HTS: Facility based testing-SD",
-                                                                  "HTS: Community-based testing-SD"= "HTS: Community based testing-SD",
-                                                                  "HTS: Facility-based testing-NSD"= "HTS: Facility based testing-NSD",
-                                                                  "HTS: Community-based testing-NSD"= "HTS: Community based testing-NSD"))%>%
-    dplyr::rename("Program Area" =`Program Area (Service Delivery Only)`) 
-  
-  #Separate out program area, sub program area, beneficiary, sub beneficiary, and interaction type
-  df<- df %>%separate(col = "Program Area", into=c("Program Area", "Sub Program Area"), sep=":") %>%
-    separate(col = "Sub Program Area", into=c("Sub Program Area", "Interaction Type"), sep="-") 
-    
-    #Rename to match BUDGET_ER_MER Dataset
-    df<- df %>%dplyr::rename("Commodity Unit Cost" =`Unit Cost`,
-                             "Commodity Unit Price" =`Unit Price`,"Total Planned Funding" =`Total Item Budget`,
-                             "Commodity Item" =`Item`,)
-  
-  #Create new variables
-  df<- df %>%
-    dplyr::mutate(`Data Stream`="FAST Commodities",`Fiscal Year`="2024",`Planning Cycle`="COP23",
-                  `Record Type`="Implementing Mechanism")
-  
-  #Replace NAs in numeric columns
-  df<- df %>%  
-    dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))
-  
-  #Convert  numeric  columns to numeric
-  df<- df %>%  
-    dplyr::mutate_at(vars(`Commodity Quantity`,`Commodity Unit Price`,
-                         `Global Freight`, `Global Freight $`,
-                          `Commodity Unit Cost`, `Total Planned Funding`, `Remaining $`), funs(as.numeric))
-  
-  #Drop all rows without a MECH ID specified 
-  df<- df %>%   
-    drop_na('Mechanism ID')
-  
-  #Add in agency category column to group agencies
-  df<-df %>% agency_category_fast()
-  
-  #recode values to match naming in Financial Integrated Dataset
-  df<- df %>% interaction_type_fast() 
-  #Add dashes back in Facility-based testing and Community-Based Testing 
-  df<- df %>%  
-    dplyr::mutate(`Sub Program Area`= recode (`Sub Program Area`, 
-                                              "Facility based testing"= "Facility-based testing", 
-                                              "Community based testing"= "Community-based testing"))  
-  
-  return(df)
-}
-
-#The commodities tab doesn't have certain identifiers (Funding Agency,OU) 
-#so this list will be used later to join to make the final commodities data frame
-FAST_MECHSLIST<-function(df){
-  df<-read_xlsx(df, "Mechs List-E", skip=3)
-  df<- df %>%  
-    dplyr::select ("OU", "Mechanism ID") %>%
-    dplyr::rename("Operating Unit"= "OU") %>% 
-    dplyr::mutate(`Mechanism ID`=as.character(`Mechanism ID`))
-  return(df)
-} 
-
-
 FAST_Earmarks_IM<-function(df){
   df<-read_xlsx(df)
-  df<- read_xlsx("C:/Users/jmontespenaloza/Documents/COP23 Tools/FASTS/COPMatrixExport_All Operating Units_6_14.xlsx")
-  
   #Drop columns you don't need and rename  
   df<- df %>%
     dplyr::select(-c('Award Number','Agency: Is Indigenous Partner?':'Initiative',
