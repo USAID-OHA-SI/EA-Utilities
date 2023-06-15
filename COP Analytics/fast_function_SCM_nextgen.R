@@ -70,7 +70,7 @@ FAST_Intervention<-function(df){
   #nested read_csv. Can be removed and run separately
   
   #recode values to match naming in Financial Integrated Dataset
-  df<- read_xlsx("C:/Users/jmontespenaloza/Documents/COP23 Tools/FASTS/COPMatrixExport_All Operating Units_6_14.xlsx")
+  df<- read_xlsx(df)
   
   # Drop columns you don't need and rename  
   df<- df %>% dplyr::select( -c('Award Number','Agency: Is Indigenous Partner?':'Initiative',
@@ -89,7 +89,7 @@ FAST_Intervention<-function(df){
                   #"Sub Beneficiary" = `Minor Beneficiary`,
                   "COP Budget New Funding" = `Total New Funding Sources`,
                   "COP Budget Pipeline" = `Applied Pipeline Amount`,
-                  "Mechanism" = `Mechanism Identifier`) %>% 
+                  "Mechanism ID" = `Mechanism Identifier`) %>% 
     
     #create data stream  
     dplyr::mutate(`Data Stream`="FSD")   
@@ -119,23 +119,25 @@ FAST_Intervention<-function(df){
 #Clean the FAST SCM tab using the function for Cross-Cutting Attribution + Earmark data.
 FAST_CCA<-function(df){
   #nested read_csv. Can be removed and run separately
-  df<-read_xlsx(df,"Standard COP Matrix-E", skip=3)
+  df<-read_xlsx(df)
   
   # Drop columns you don't need and rename  
-  df<- df %>% dplyr::select( -c('FAST Tabs','SCM Row ID',
-                                'Appropriation Year', 'Initiative',
-                                'Funding Category','Blank Number':'Actual Year 2 %',
-                                'COVID Adaptation-GHP-State':'Message'))%>%
-    dplyr::rename("Prime Partner Name" = `Partner Name`,
+  df<- df %>% dplyr::select( -c('Award Number','Agency: Is Indigenous Partner?':'Initiative',
+                                'Appropriation Year','Prime Partner DUNS',
+                                'Funding Category','GAP':'ESF',
+                                "Total New Funding Sources":"Total Planned Funding",
+                                "COVID Applied Pipeline":"AB/Y Denominator"))%>%
+    dplyr::rename("Prime Partner Name" = `Prime Partner`,
                   #"Is Indigenous Prime Partner" = `Is Indigenous Partner?`,
                   #"Prime Partner Type" = `Partner Org Type`,
                   #"Fiscal Year" = `Implementation Year`,
                   "Program Area" = `Major Program`,
                   "Sub Program Area" = `Sub Program`,
-                  "Interaction Type" = `SD/NSD`) %>% 
-    #"Beneficiary" = `Major Beneficiary`,
-    #"Sub Beneficiary" = `Minor Beneficiary`) %>%    
-    #create data stream  
+                  "Interaction Type" = `SD/NSD`,
+                  "Targeted Beneficiary" = `Major Beneficiary`,
+                  #"Sub Beneficiary" = `Minor Beneficiary`,
+                  "Mechanism" = `Mechanism Identifier`) %>% 
+                  #create data stream  
     dplyr::mutate(`Data Stream`="FAST Cross Cutting Attribution")
   
   #remove N/A's
@@ -143,11 +145,11 @@ FAST_CCA<-function(df){
   
   #replace NAs with 0s
   df<-df%>%
-    mutate_at(vars(`Water`:`Key Populations: SW`),~replace_na(.,0))
+    mutate_at(vars(`Water`:`Climate - Sustainable Landscapes`),~replace_na(.,0))
   
   
   #Using pivot long to shift CCA vertically
-  df <- df %>% pivot_longer(cols = `Water`:`Key Populations: SW`,
+  df <- df %>% pivot_longer(cols = `Water`:`Climate - Sustainable Landscapes`,
                             names_to = "Cross-Cutting Attribution",
                             values_to = "Total Planned Funding")
   
@@ -168,16 +170,16 @@ FAST_CCA<-function(df){
 #****Note that this is not by funding account since the FAST doesn't have applied pipeline by funding account*****
 FAST_Initiative<-function(df){
   #nested read_csv. Can be removed and run separately
-  df<-read_xlsx(df,"Standard COP Matrix-E", skip=3)
+  df<-read_xlsx(df)
+  
   #include columns of interest
- # df<- df %>% dplyr::select(-c('FAST Tabs','SCM Row ID',
-                               #'Appropriation Year',
-                               #'Blank Number':'COP 22 Budget', 'ESF',
-                               #'Default Year 2 %':'Actual Year 2 %',
-                               #'Water':'Message'))
+  df<- df %>% dplyr::select(-c('Award Number','Agency: Is Indigenous Partner?':'Prime Partner Org Type',
+                               'Appropriation Year','Prime Partner DUNS',
+                               'Funding Category','GAP':'ESF', 
+                               'Water':'AB/Y Denominator'))
   
   #Rename to match BUDGET_ER_MER Dataset
-  df<- df %>% dplyr::rename("Prime Partner Name" =`Partner Name`, 
+  df<- df %>% dplyr::rename("Prime Partner Name" =`Prime Partner`, 
                             #"Is Indigenous Prime Partner" =`Is Indigenous Partner?`,
                             #"Prime Partner Type" =`Partner Org Type`,
                             "Initiative Name" =`Initiative`,
@@ -185,34 +187,35 @@ FAST_Initiative<-function(df){
                             "Program Area" = `Major Program`,
                             "Sub Program Area" = `Sub Program`,
                             "Interaction Type" = `SD/NSD`,
-                            #"Beneficiary" =`Major Beneficiary`,
+                            "Targeted Beneficiary" =`Major Beneficiary`,
                             #"Sub Beneficiary" =`Minor Beneficiary`,
                             "New Funding" =`Total New Funding Sources`,
-                            "Applied Pipeline" =`Applied Pipeline Amount`)
+                            "Applied Pipeline" =`Applied Pipeline Amount`,
+                            "Mechanism ID" = `Mechanism Identifier`)
   #Pivot COP Budget New Funding & COP Budget Pipeline to 'funding_type' with value as 'Total Planned Funding'
-  #df <- df %>% gather(`Funding Type`,`Total Planned Funding`, `New Funding`:`Applied Pipeline`)
+  df <- df %>% gather(`Funding Type`,`Total Planned Funding`, `New Funding`:`Applied Pipeline`)
   
   #Pivot GAP, GHP-STATE, GHP-USAID to 'funding_account' with value as 'COP Budget New Funding'
   #df <- df %>% gather(funding_account,`COP Budget New Funding`, `GAP`:`GHP-USAID`)
   
   #Create variable 'Data stream' with Initiative
-  #df <- df %>% dplyr::mutate(`Data Stream`="FAST Initiative") #consider renaming to specify FAST
+  df <- df %>% dplyr::mutate(`Data Stream`="FAST Initiative") #consider renaming to specify FAST
   
   #Convert columns into characters and numeric
-  #df<-df%>%
-   # dplyr::mutate_at(vars(`Planning Cycle`:`Funding Type`), funs(as.character)) 
+  df<-df%>%
+   dplyr::mutate_at(vars(`Planning Cycle`:`Funding Type`), funs(as.character)) 
   
   #Replace NAs in numeric columns
- # df <- df %>% dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))
+  df <- df %>% dplyr::mutate_at(vars(`Total Planned Funding`),~replace_na(.,0))
   
   #Drop all rows without an OU specified 
-  #df <- df %>%  drop_na('Operating Unit') 
+  df <- df %>%  drop_na('Operating Unit') 
   
   #Add in agency category column to group agencies
-  #df<-df %>% agency_category_fast()
+  df<-df %>% agency_category_fast()
   
   #recode values to match naming in Financial Integrated Dataset
-  #df<- df %>% interaction_type_fast() 
+  df<- df %>% interaction_type_fast() 
   
   return(df)
 }
@@ -294,21 +297,26 @@ FAST_MECHSLIST<-function(df){
 
 
 FAST_Earmarks_IM<-function(df){
-  df<-read_xlsx(df, "Standard COP Matrix-E", skip=3)
+  df<-read_xlsx(df)
+  df<- read_xlsx("C:/Users/jmontespenaloza/Documents/COP23 Tools/FASTS/COPMatrixExport_All Operating Units_6_14.xlsx")
+  
   #Drop columns you don't need and rename  
   df<- df %>%
-    dplyr::select(-c('FAST Tabs','SCM Row ID',
-                     'Appropriation Year',  'Initiative',
-                     'Funding Category','Blank Number':'COVID Adaptation-Applied Pipeline', 'C&T Non-PM':'Message'))%>%
+    dplyr::select(-c('Award Number','Agency: Is Indigenous Partner?':'Initiative',
+                     'Appropriation Year','Prime Partner DUNS',
+                     "Total New Funding Sources":"Total Planned Funding",
+                     'Funding Category','GAP':'ESF', 
+                     'Water':'COVID Applied Pipeline'))%>%
     
-    dplyr::rename("Prime Partner Name" = `Partner Name`,
+    dplyr::rename("Prime Partner Name" = `Prime Partner`,
                   #"Is Indigenous Prime Partner" = `Is Indigenous Partner?`,
                   # "Fiscal Year" = `Implementation Year`,
                   "Program Area" = `Major Program`,
                   "Sub Program Area" = `Sub Program`,
-                  "Interaction Type" = `SD/NSD`,) %>% 
-  #"Beneficiary" = `Targeted Beneficiary`)
-  #"Sub Beneficiary" = `Minor Beneficiary`) %>% 
+                  "Interaction Type" = `SD/NSD`,
+                  "Targeted Beneficiary" = `Major Beneficiary`,
+                  #"Sub Beneficiary" = `Minor Beneficiary`,
+                  "Mechanism ID" = `Mechanism Identifier`) %>% 
   
   dplyr::mutate(`Data Stream`="FAST Earmark")
   
