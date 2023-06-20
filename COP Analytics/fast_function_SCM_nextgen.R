@@ -136,7 +136,7 @@ FAST_CCA<-function(df){
                   "Interaction Type" = `SD/NSD`,
                   "Targeted Beneficiary" = `Major Beneficiary`,
                   #"Sub Beneficiary" = `Minor Beneficiary`,
-                  "Mechanism" = `Mechanism Identifier`) %>% 
+                  "Mechanism ID" = `Mechanism Identifier`) %>% 
                   #create data stream  
     dplyr::mutate(`Data Stream`="FAST Cross Cutting Attribution")
   
