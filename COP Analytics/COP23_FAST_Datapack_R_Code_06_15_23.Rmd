@@ -240,7 +240,7 @@ Update the date
 ## FAST + DATAPACK OUTPUT
  write.csv(df.COP22PlanningDataset_Final, paste0("C:/Users/vdacosta/Documents/R/FAST_DATAPACK", format(Sys.time(), "%d-%b-%Y"), ".csv"))
 
-write_csv(df.COP22PlanningDataset_Final,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_DATAPACK_05_26_23.csv"))
+write_csv(df.COP22PlanningDataset,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_DATAPACK_06_19_23.csv"))
 
 
 write_csv(df.fast_raw,here("C:/Users/jmontespenaloza/Documents/COP23 Tools/FAST_Raw_05_26_23 (OVC).csv"))
