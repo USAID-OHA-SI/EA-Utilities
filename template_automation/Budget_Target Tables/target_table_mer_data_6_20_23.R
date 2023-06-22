@@ -106,19 +106,19 @@ library(fs)
   # MOVE TO DRIVE -----------------------------------------------------------
   
   #create folder for upload
-  drive_mkdir("COP20 Financial and Programmatic Files",
-              path = as_id(glbl_id)) #path is to the ER FY21 Folder but can be changed
+  #drive_mkdir("COP20 Financial and Programmatic Files",
+              #path = as_id(glbl_id)) #path is to the ER FY21 Folder but can be changed
   
   #identify list of   
-  local_files <- list.files("ER21_Financial_Programmatic", full.names = TRUE)
+  #local_files <- list.files("ER21_Financial_Programmatic", full.names = TRUE)
   
   #push to drive
-  walk(local_files,
-       ~ drive_upload(.x,
-                      path = as_id(fldr_id), #path is to the ER21 test file folder
-                      name = basename(.x),
-                      type = "spreadsheet"))
+ # walk(local_files,
+       #~ drive_upload(.x,
+                     # path = as_id(fldr_id), #path is to the ER21 test file folder
+                      #name = basename(.x),
+                      #type = "spreadsheet"))
   
   #remove all local files
-  unlink("ER21_Financial_Programmatic", recursive = TRUE)
+  #unlink("ER21_Financial_Programmatic", recursive = TRUE)
   
