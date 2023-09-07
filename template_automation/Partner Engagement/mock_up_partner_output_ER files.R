@@ -64,8 +64,9 @@ gen_df_no_cost <- function(df, null_rm=TRUE){
 ## Generate data.frame with cost category. Since Work Plans and ER data have cost
 ## category information, only FAST is excluded in this data.frame
 gen_df_with_cost <- function(df){
-  drop_cols_temp <- c("cop_budget_total", "operatingunit", "countryname",
-                      "primepartner", "mech_name", "mech_code","funding_account","prime_partner_uei","subrecipient_uei")
+  drop_cols_temp <- c("cop_budget_total", "operatingunit", "country", "funding_agency",
+                      "prime_partner_name", "mech_name", "mech_code","funding_account","prime_partner_uei","subrecipient_uei")
+
   df<-df%>%
     filter(cost_category !="Not Specified")
   df <- df[ , !names(df) %in% drop_cols_temp]
@@ -77,7 +78,7 @@ gen_df_with_cost <- function(df){
 ## Pipeline
 ## dr is the string pathway for the local directory for outputs. 
 ## Default dr is RStudio's working environment
-template_path <- '~/GitHub/EA-Utilities/template_automation/partnerDataTemplateV4_ER reference.xlsx'
+template_path <- '~/GitHub/EA-Utilities/template_automation/Partner Engagement/partnerDataTemplateV1.xlsx'
 
 wb_pipeline <- function(mech, dr = "", df = df_fsd){
   df_mech <- filter_one_mech(mech)
@@ -88,7 +89,7 @@ wb_pipeline <- function(mech, dr = "", df = df_fsd){
   # NOTE: if column order changes, this code will break
   # mech_id <- df_mech[1,1:5]
   mech_id<-df_mech%>%
-    select(operatingunit,countryname,primepartner,mech_code,mech_name)
+    select(operatingunit,country,prime_partner_name,mech_code,mech_name)
    mech_id<- mech_id[1,1:5]
   
   wb <- loadWorkbook(template_path)
@@ -147,7 +148,7 @@ glamr::si_path()
 df_fsd <-si_path()%>%
   return_latest("Fin")%>% 
   gophr::read_msd()%>% 
-  filter(str_detect(fundingagency, 'USAID'))%>%
+  filter(str_detect(funding_agency, 'USAID'))%>%
   remove_mo()
 
 # MUNG ===============================================================================
@@ -163,7 +164,7 @@ df_fsd <- df_fsd[ , !(names(df_fsd) %in% drop_cols)]
 
 # Keep only COP21
 df_fsd <- df_fsd %>%
-  filter(planning_cycle=="COP21")
+  filter(planning_cycle=="COP22")
 
 # Replace "Program Management" with "IM Program Management"
 df_fsd$sub_program <- replace(df_fsd$sub_program, df_fsd$sub_program == "Program Management", "IM Program Management")
