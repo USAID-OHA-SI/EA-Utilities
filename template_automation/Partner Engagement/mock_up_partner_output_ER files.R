@@ -104,6 +104,10 @@ wb_pipeline <- function(mech, dr = "", df = df_fsd){
   addFilter(wb, sheet = 2, rows = 2, cols = 1:8) #give user ability to filter by categories
   addFilter(wb, sheet = 3, rows = 2, cols = 1:10)
   
+  addStyle(wb, sheet = 2, dollar_cell, rows = 2:200, cols = 8, gridExpand=T, stack=T)
+  addStyle(wb, sheet = 3, dollar_cell, rows = 2:200, cols = 10, gridExpand=T, stack=T)
+  
+  
   file_name <- glue("{dr}{mech_id[2]}_{mech_id[4]}_budget_reference_file.xlsx")
   saveWorkbook(wb, file_name, overwrite = TRUE)
   
